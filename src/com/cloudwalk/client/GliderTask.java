@@ -9,9 +9,6 @@
  */
 package com.cloudwalk.client;
 
-import java.util.Arrays;
-
-import android.graphics.Color;
 import android.util.Log;
 
 import com.cloudwalk.framework3d.Tools3d;
@@ -30,18 +27,16 @@ public class GliderTask extends Glider {
 		nextTP = xcModelViewer.xcModel.task.turnPointManager.turnPoints[1];
 	}
 
-	/**
-	 * Start flying the task.
-	 */
-	public void takeOff(boolean really) {
-		super.takeOff(really);
+	public void launch(boolean takeoff) {
+		Log.w("FC takeOff", "GliderTask takeoff" + myID);
 		nextTP = xcModelViewer.xcModel.task.turnPointManager.turnPoints[1];
-		finished = false;
+		super.launch(takeoff);
 	}
 
 	public void tick(float t, float dt) {
 		super.tick(t, dt);
 		checkSector(t);
+		currentGlideSpeed();
 	}
 
 	/**
@@ -64,15 +59,15 @@ public class GliderTask extends Glider {
 		if (Glider.filmID == myID) {
 			modelViewer.cameraMan.setSubject(this, true);
 		}
+		if (this instanceof Bird)
+			Log.w("FC", "Bird " + this.myID + " reached turnpoint, heading for:" + nextTP.myID);
 	}
-
-	public boolean finished = false;
-	public float timeFinished = 0;
 
 	private void finishedTask() {
 		if (!finished) {
 			finished = true;
 			timeFinished = timeFlying;
+			modelViewer.modelEnv.sendMessage("Player: " + this.getPlayerName() + " in GOAL!");
 		}
 	}
 
@@ -98,6 +93,7 @@ public class GliderTask extends Glider {
 		u[1] += air[1];
 		groundSpeed = (float) Math.sqrt(u[0] * u[0] + u[1] * u[1]);
 		groundGlideRatio = groundSpeed / -(this.getSink() + airv);
+		groundGlideRatio = ((int) (groundGlideRatio * 10)) / 10f;
 	}
 
 	/**
@@ -125,7 +121,7 @@ public class GliderTask extends Glider {
 		String distance = " D: " + (round1(distanceFlown() / 2f)) + "km";
 		String hexColor = String.format("#%06X", (0xFFFFFF & color));
 		String ret = "<font color=\"" + hexColor + "\">" + playerName + "</font> - " + currentFlightValues + height + distance;
-		Log.i("FC GT", ret);
+		// Log.i("FC GT", ret);
 		return ret;
 	}
 
@@ -159,8 +155,8 @@ public class GliderTask extends Glider {
 	public float[] getEye() {
 		TurnPoint tp = nextTP.prevTP;
 		float z = p[2] + EYE_H;
-		if (z > xcModelViewer.xcModel.task.CLOUDBASE - 0.3f)
-			z = xcModelViewer.xcModel.task.CLOUDBASE - 0.3f;
+		if (z > xcModelViewer.xcModel.task.CLOUDBASE - 0.4f)
+			z = xcModelViewer.xcModel.task.CLOUDBASE - 0.4f;
 
 		return new float[] { p[0] - tp.dx * EYE_D, p[1] - tp.dy * EYE_D, z };
 		// return new float[] {p[0], p[1], p[2]};

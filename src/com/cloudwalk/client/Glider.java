@@ -21,23 +21,28 @@ import com.cloudwalk.framework3d.Tools3d;
  */
 public class Glider extends MovingBody {
 	static float[] air = new float[] { 0, 0 }; // air movement - common to all gliders
-	float airv = 0; // vertical air movement - specific to glider
+	public float airv = 0; // vertical air movement - specific to glider
 	XCModelViewer xcModelViewer;
 	private String typeName;
 	protected int typeID; // 0 - para, 1 - hang, 2 -sail
 	public List<float[]> polar;
 	private int iP; // the current point on the polar
-	protected boolean landed = true;
 	private float ground = 0; // ground level
 	protected float timeFlying = 0;
 	protected float maxSink = 0;
 	public int color;
 	public int color2;
 	public boolean racing = false;
-	boolean launched = false;
+	boolean landed = false;
+	boolean onGround = true;
+	boolean launchPending = false;
 	public float last_tic = 0;
 	public float[] valuesFromNet;
 	public float distanceFlown;
+	public boolean finished = false;
+	public float timeFinished = 0;
+
+	LiftSource currentLS;
 
 	// unique id for each instance of this class
 	int myID;
@@ -58,6 +63,7 @@ public class Glider extends MovingBody {
 	 */
 	public Glider(XCModelViewer xcModelViewer, GliderType gliderType, int id) {
 		super(xcModelViewer, new Obj3dDir(gliderType.obj, true));
+		Log.w("FC Glider", "myID:" + id);
 		this.xcModelViewer = xcModelViewer;
 		typeName = gliderType.typeName;
 		typeID = gliderType.typeID;
@@ -70,7 +76,7 @@ public class Glider extends MovingBody {
 		 * TODO: 1. Make wind an observable that may change thru the day. 2. Introduce wind shear - task designer may divide air vertically into *two* layers.
 		 */
 		calcMaxSInk();
-		takeOff2(false);
+		putOnStart();
 	}
 
 	public void goFaster() {
@@ -91,22 +97,22 @@ public class Glider extends MovingBody {
 			this.iP = iP;
 			setPolar();
 		}
+
 	}
 
 	/**
 	 * Takes off starting at point p and heading in the direction given by the v[0] and v[1]. Note that v[2], the vertical component of v, is not used. The
 	 * glide angle and speed are determined by the first point on the polar curve.
 	 */
-	private void takeOff(float[] p, float[] v) {
-		landed = false;
+	public void takeOff() {
+		onGround = false;
 		racing = true;
-		this.p[0] = p[0];
-		this.p[1] = p[1];
-		this.p[2] = p[2];
-		this.v[0] = v[0];
-		this.v[1] = v[1];
+		launchPending = false;
+		landed = false;
+		this.p[2] = xcModelViewer.xcModel.task.CLOUDBASE * 0.75f;
 		setPolar();
-		this.tail.reset();
+		if (this.tail != null)
+			this.tail.reset();
 		nextTurn = 0;
 		timeFlying = 0;
 		distanceFlown = 0;
@@ -119,8 +125,8 @@ public class Glider extends MovingBody {
 	 * positioned on the ground ready for take off.
 	 */
 
-	public void takeOff2(boolean really) {
-		// Log.w("FC takeOff2", "myID:" + myID);
+	public void putOnStart() {
+		Log.w("FC putOnStart", "myID:" + myID);
 		TurnPoint tp = xcModelViewer.xcModel.task.turnPointManager.turnPoints[0];
 		float[] v = new float[] { tp.dx, tp.dy, 0 };
 
@@ -130,23 +136,25 @@ public class Glider extends MovingBody {
 		float dx = (myID - 5) * TO_DIST * tp.dy;
 		float dy = -(myID - 5) * TO_DIST * tp.dx;
 		float[] p = new float[] { tp.x + dx, tp.y + dy, xcModelViewer.xcModel.task.CLOUDBASE * 0.75f };
-		//float[] p = new float[] { 1964, 167, xcModelViewer.xcModel.task.CLOUDBASE * 0.75f };
 
-		if (really) {
-			this.takeOff(p, v);
-		} else {
-			this.p[0] = p[0];
-			this.p[1] = p[1];
-			this.p[2] = 0; // on the ground
-			this.v[0] = v[0];
-			this.v[1] = v[1];
+		this.p[0] = p[0];
+		this.p[1] = p[1];
+		this.p[2] = 0; // on the ground
+		this.v[0] = v[0];
+		this.v[1] = v[1];
+		if (this.tail != null)
 			this.tail.reset();
-			hitTheSpuds2();
-		}
+		putOnGround();
 	}
 
-	public void takeOff(boolean really) {
-		takeOff2(really);
+	public void launch(boolean takeOff) {
+		finished = false;
+		if (takeOff)
+			takeOff();
+		else {
+			launchPending = true;
+			putOnStart();
+		}
 	}
 
 	/**
@@ -162,9 +170,13 @@ public class Glider extends MovingBody {
 	 * 	           ----.
 	 * </pre>
 	 */
-	private void setPolar() {
+	protected void setPolar() {
+		if (iP >= polar.size())
+			iP = polar.size() - 1;
+		if (iP < 0)
+			iP = 0;
 		if (polar.get(iP)[SINK] >= polar.get(iP)[SPEED] || polar.get(iP)[SINK] <= -polar.get(iP)[SPEED]) {
-			Log.i("FC", "Invalid point on polar curve ! Sink must be less than speed.");
+			Log.i("FC", "Invalid point on polar curve ! Sink must be less than speed. " + iP);
 			return;
 		}
 		speed = polar.get(iP)[SPEED];
@@ -204,16 +216,19 @@ public class Glider extends MovingBody {
 	}
 
 	void hitTheSpuds() {
-		launched = false;
-		hitTheSpuds2();
+		landed = true;
+		putOnGround();
 	}
 
-	void hitTheSpuds2() {
+	void putOnGround() {
 		speed = 0;
 		nextTurn = 0;
 		v[2] = 0;
+		p[2] = 0;
 		scaleVxy();
-		landed = true;
+		onGround = true;
+		if (this.tail != null)
+			this.tail.reset();
 	}
 
 	/**
@@ -249,7 +264,7 @@ public class Glider extends MovingBody {
 			_t = t - modeldt;
 		// float dt = t - _t;
 		float dt = modeldt;
-		if (!landed) {
+		if (!onGround) {
 			// motion due to air (wind and lift/sink)
 			p[0] += air[0] * dt;
 			p[1] += air[1] * dt;
@@ -277,9 +292,18 @@ public class Glider extends MovingBody {
 			setPolar(Math.round(valuesFromNet[5]));
 			nextTurn = Math.round(valuesFromNet[6]);
 			Log.i("FC Glider", "corrected");
-			p[0] = valuesFromNet[0] * .1f + p[0] * 0.9f;
-			p[1] = valuesFromNet[1] * .1f + p[1] * 0.9f;
-			p[2] = valuesFromNet[2] * .1f + p[2] * 0.9f;
+			float xd = valuesFromNet[0] - p[0];
+			float yd = valuesFromNet[1] - p[1];
+			if (xd * xd + yd * yd > 0.1f) {
+				p[0] = valuesFromNet[0];
+				p[1] = valuesFromNet[1];
+				p[2] = valuesFromNet[2];
+			} else {
+				p[0] = valuesFromNet[0] * .1f + p[0] * 0.9f;
+				p[1] = valuesFromNet[1] * .1f + p[1] * 0.9f;
+				p[2] = valuesFromNet[2] * .1f + p[2] * 0.9f;
+			}
+
 			v[0] = valuesFromNet[3];
 			v[1] = valuesFromNet[4];
 			valuesFromNet = null;
@@ -310,6 +334,10 @@ public class Glider extends MovingBody {
 		return polar.get(iP)[SINK];
 	}
 
+	public float getActualSink() {
+		return getSink() + airv;
+	}
+
 	/**
 	 * Returns the speed for a given point on the polar, or the current point.
 	 */
@@ -325,15 +353,19 @@ public class Glider extends MovingBody {
 	 * Returns a text message giving current state of glider. See GliderAI for user friendly stuff. This is for debug.
 	 */
 	public String getStatusMsg() {
-		if (!landed) {
+		if (!onGround) {
 			return "P: " + Tools3d.asString(this.p);
 		} else {
-			return "Landed !";
+			return "On ground";
 		}
 	}
 
 	public boolean getLanded() {
 		return landed;
+	}
+
+	public boolean getOnGround() {
+		return onGround;
 	}
 
 	public float[] getFocus() {

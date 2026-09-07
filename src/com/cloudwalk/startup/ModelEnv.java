@@ -13,6 +13,7 @@ import java.io.*;
 import java.awt.*;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 
 /**
    This interface enables a ModelViewer to be used in either an
@@ -28,7 +29,9 @@ public interface ModelEnv {
     void setTask(String task);
     String getHostPort(); 
     int[] getTypeNums();
-	void play(int sound);
+	void play(float sound, int index, int loop);
 	Context getContext();
+	SharedPreferences getPrefs();
+	void sendMessage(String msg);
 }
    

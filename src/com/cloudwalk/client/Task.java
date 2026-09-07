@@ -14,8 +14,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StreamTokenizer;
-import java.util.Arrays;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.Locale;
+import java.util.Random;
 
+import net.e175.klaus.solarpositioning.AzimuthZenithAngle;
+import net.e175.klaus.solarpositioning.PSA;
 import android.graphics.Color;
 import android.util.Log;
 
@@ -31,6 +38,7 @@ import com.cloudwalk.framework3d.Tools3d;
 public class Task implements CameraSubject {
 	public static int TIME = 0;
 	public static int DISTANCE = 1;
+	public static int TIME_PRECISE = 2;
 	public XCModelViewer xcModelViewer;
 	String taskID;
 	NodeManager nodeManager;
@@ -43,6 +51,11 @@ public class Task implements CameraSubject {
 	public String desc = "";
 	public float NODE_SPACING;
 	public int type = TIME;
+	static float SUN_DISTANCE = 1000000000f;
+	public static float[] sun = { SUN_DISTANCE / 4, SUN_DISTANCE / 8, SUN_DISTANCE };
+	public static float[] shadowFactors = { 1 / 4f, 1 / 8f };
+	float latitude = 45;
+	String time_of_day = "12";
 
 	// for the default course
 	static float HEXAGON; // 8;
@@ -59,17 +72,53 @@ public class Task implements CameraSubject {
 			generateT5Task();
 		} else if (taskID.equals("default6")) {
 			generateT6Task();
+		} else if (taskID.equals("default7")) {
+			generateT7Task();
+		} else if (taskID.equals("default8")) {
+			generateT8Task();
+		} else if (taskID.equals("default9")) {
+			generateT9Task();
+		} else if (taskID.equals("default10")) {
+			generateT10Task();
+		} else if (taskID.equals("default11")) {
+			generateT11Task();
 		} else {
 			parseFile(taskID);
 		}
 		nodeManager = new NodeManager(xcModelViewer, this);
 		Glider.air[0] = wind_x;
 		Glider.air[1] = wind_y;
-
+		shadowFactors[0] = sun[0] / sun[2];
+		shadowFactors[1] = sun[1] / sun[2];
+		boolean real_shadows = xcModelViewer.modelEnv.getPrefs().getBoolean("real_shadows", true);
+		AzimuthZenithAngle azimuthZenithAngle = null;
+		if (!real_shadows) {
+			azimuthZenithAngle = new AzimuthZenithAngle(180, 0);
+		} else {
+			SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss Z");
+			Date date = null;
+			try {
+				date = dateFormat.parse("21.06.2014 " + time_of_day + ":00:00 +0000");
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			GregorianCalendar calendar = (GregorianCalendar) GregorianCalendar.getInstance(new Locale("en_GB"));
+			calendar.setTime(date);
+			azimuthZenithAngle = PSA.calculateSolarPosition(calendar, latitude, 0.0);
+		}
+		Log.i("FC TASK", azimuthZenithAngle.toString());
+		float f1 = (float) Math.tan(Math.toRadians(azimuthZenithAngle.getZenithAngle()));
+		float fx = (float) Math.sin(Math.toRadians(azimuthZenithAngle.getAzimuth() - 180));
+		float fy = (float) Math.cos(Math.toRadians(azimuthZenithAngle.getAzimuth() - 180));
+		shadowFactors[0] = f1 * fx;
+		shadowFactors[1] = f1 * fy;
 	}
 
 	private void generateT1Task() {
 		desc = "Simple closed circuit 50km task with 2 turnpoints and GOAL = START.\nFirst point to N. \nWind SW. \nCloudbase at 1500m.";
+		latitude = 40;
+		time_of_day = "13";
 		CLOUDBASE = 3;
 		NODE_SPACING = CLOUDBASE * 12f;
 		HEXAGON = CLOUDBASE * 7;
@@ -89,7 +138,7 @@ public class Task implements CameraSubject {
 		triggers = new Trigger[4 * 4 * 6];
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {
-				flatLand(i * HEXAGON, j * HEXAGON, 1);
+				flatLand(i * HEXAGON, j * HEXAGON, 1, CLOUDBASE);
 			}
 		}
 
@@ -101,12 +150,11 @@ public class Task implements CameraSubject {
 				{ 4 * x, 2 * x + 0.1f, 0 } };
 		roadManager = new RoadManager(xcModelViewer, new float[][][] { r1, r2, r3, r4 });
 
-		// hills = new Hill[1];
-		// Hill hill = new Hill(this, x, 1.5f * x);
-		// hills[0] = hill;
 	}
 
 	private void generateT5Task() {
+		latitude = 46;
+		time_of_day = "14";
 		desc = "Massive 150km task with lots of clouds and 6TP.\nWind: weak SW.\nCloudbase at 1500m.";
 		CLOUDBASE = 3;
 		NODE_SPACING = CLOUDBASE * 12f;
@@ -126,7 +174,7 @@ public class Task implements CameraSubject {
 		triggers = new Trigger[9 * 2 * 6];
 		for (int i = 1; i < 10; i++) {
 			for (int j = 0; j < 2; j++) {
-				flatLand(i * HEXAGON, j * HEXAGON, 2);
+				flatLand(i * HEXAGON, j * HEXAGON, 2, CLOUDBASE);
 			}
 		}
 
@@ -143,6 +191,8 @@ public class Task implements CameraSubject {
 	}
 
 	private void generateT6Task() {
+		latitude = 40;
+		time_of_day = "12";
 		desc = "Free distance task.\nWind: weak W.\nCloudbase at 1500m.";
 		type = DISTANCE;
 		CLOUDBASE = 3;
@@ -158,7 +208,7 @@ public class Task implements CameraSubject {
 		float x_ = 0, y_ = 0;
 		for (int i = 1; i < 20; i++) {
 			HEXAGON = (float) (CLOUDBASE * (7 + Math.pow(i, 1.46f)));
-			flatLand2(x_ += HEXAGON * 0.833f, y_, 3);
+			flatLand2(x_ += HEXAGON * 0.833f, y_, 3, CLOUDBASE);
 			// r1[i - 1] = new float[] { x_ + HEXAGON / 2 + (Tools.get01Value4(x_, y_) - 0.5f) * HEXAGON / 2,
 			// y_ + HEXAGON / 2 + (Tools.get01Value4(x_, y_) - 0.5f) * HEXAGON / 2, 0 };
 		}
@@ -166,7 +216,6 @@ public class Task implements CameraSubject {
 		float[] xs = { CLOUDBASE * 7, x_ + HEXAGON };
 		float[] ys = { CLOUDBASE * 7 / 4, y_ + HEXAGON * .7f };
 		turnPointManager = new TurnPointManager(xcModelViewer, xs, ys);
-//		Log.i("FC Task", Arrays.toString(xs) + " " + Arrays.toString(ys));
 
 		// roads - specify start and end points
 		float[][] r1 = new float[][] { { 0, 0, 0 }, { x_ / 3, y_ + HEXAGON * .3f, 0 }, { x_ / 1.5f, y_ + HEXAGON * .4f, 0 },
@@ -175,9 +224,197 @@ public class Task implements CameraSubject {
 				{ x_ + HEXAGON, y_ + HEXAGON * .3f + 0.1f, 0 } };
 		roadManager = new RoadManager(xcModelViewer, new float[][][] { r1, r2 }, 60f, 25f);
 
-		// hills = new Hill[1];
-		// Hill hill = new Hill(this, x, 1.5f * x);
-		// hills[0] = hill;
+	}
+
+	private void generateT7Task() {
+		latitude = 45;
+		time_of_day = "15";
+		type = TIME_PRECISE;
+		desc = "Difficult low-cloudbase closed circuit 160km task with 3 turnpoints and GOAL = START.\nFirst point to N. \nWind SW. \nCloudbase varies around 1200m.";
+		CLOUDBASE = 2.4f;
+		NODE_SPACING = 4 * 12f;
+		HEXAGON = 4 * 7;
+		// turn points
+		float x = 4 * 10;
+		// x /= 5; // tmp - small course for testing gliding around the turn
+		// points
+		float[] xs = { x / 2, x / 2, 2.5f * x, 2.5f * x, x / 2 };
+		float[] ys = { x / 2, 2.5f * x, 2.5f * x, x / 2, x / 2 };
+		turnPointManager = new TurnPointManager(xcModelViewer, xs, ys);
+
+		// wind
+		wind_x = 0.05f;
+		wind_y = 0.05f;
+
+		// triggers
+		triggers = new Trigger[4 * 4 * 6];
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				flatLand(i * HEXAGON, j * HEXAGON, 4, CLOUDBASE);
+			}
+		}
+
+		// roads - specify start and end points
+		float[][] r1 = new float[][] { { 0, 0, 0 }, { 0.8f * x, x, 0 }, { x, 2 * x, 0 }, { 2 * x, 4 * x, 0 } };
+		float[][] r2 = new float[][] { { 0, 0, 0 }, { 0.8f * x, x + 0.1f, 0 }, { x, 2 * x + 0.1f, 0 }, { 2 * x, 4 * x + 0.1f, 0 } };
+		roadManager = new RoadManager(xcModelViewer, new float[][][] { r1, r2 });
+
+	}
+
+	private void generateT8Task() {
+		desc = "Out and return 160km task.\nWind: weak WSW.\nCloudbase varies around 1800m.";
+		latitude = 46;
+		time_of_day = "15";
+		type = TIME_PRECISE;
+		CLOUDBASE = 3.6f;
+		NODE_SPACING = CLOUDBASE * 12f;
+		HEXAGON = CLOUDBASE * 7;
+		float x = CLOUDBASE * 10;
+
+		// turn points
+		float[] xs = { x / 2f, x * 5.f, x / 2f };
+		float[] ys = { x * 0.35f, x * 0.4f, x * 0.45f };
+		turnPointManager = new TurnPointManager(xcModelViewer, xs, ys);
+
+		// wind
+		wind_x = 0.075f;
+		wind_y = 0.05f;
+
+		// triggers
+		triggers = new Trigger[6 * 1 * 6];
+		for (int i = 1; i < 7; i++) {
+			for (int j = 0; j < 1; j++) {
+				flatLand(i * HEXAGON, j * HEXAGON, 4, CLOUDBASE);
+			}
+		}
+
+		// roads - specify start and end points
+		float[][] r1 = new float[][] { { 0, 0, 0 }, { 0.8f * x, 0.6f * x, 0 }, { 4 * x, x * .1f, 0 }, { 8 * x, 0.5f * x, 0 } };
+		float[][] r2 = new float[][] { { 0, 0.1f, 0 }, { 0.8f * x, 0.6f * x + 0.1f, 0 }, { 4 * x, x * .1f + 0.1f, 0 }, { 8 * x, 0.5f * x + 0.1f, 0 } };
+		roadManager = new RoadManager(xcModelViewer, new float[][][] { r1, r2 });
+
+	}
+
+	private void generateT9Task() {
+		desc = "Closed circuit 50km task with 2 turnpoints and GOAL = START.\nDifferent triggers every day!\nFirst point to N. \nWind SW. \nCloudbase around 1500m.";
+		type = TIME_PRECISE;
+		latitude = 45;
+		time_of_day = "13";
+		CLOUDBASE = 3;
+		NODE_SPACING = CLOUDBASE * 12f;
+		HEXAGON = CLOUDBASE * 7;
+		// turn points
+		float x = CLOUDBASE * 10;
+		// x /= 5; // tmp - small course for testing gliding around the turn
+		// points
+		float[] xs = { x, x, 2 * x, x };
+		float[] ys = { x, 2 * x, 1.5f * x, x };
+		turnPointManager = new TurnPointManager(xcModelViewer, xs, ys);
+
+		// wind
+		wind_x = 0.1f;
+		wind_y = 0.1f;
+
+		// triggers
+		triggers = new Trigger[4 * 4 * 6];
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				flatLandRandom(i * HEXAGON, j * HEXAGON, 4, CLOUDBASE);
+			}
+		}
+
+		// roads - specify start and end points
+		float[][] r1 = new float[][] { { 0, 0, 0 }, { 0.8f * x, x, 0 }, { x, 2 * x, 0 }, { 2 * x, 4 * x, 0 } };
+		float[][] r2 = new float[][] { { 0, 0, 0 }, { 0.8f * x, x + 0.1f, 0 }, { x, 2 * x + 0.1f, 0 }, { 2 * x, 4 * x + 0.1f, 0 } };
+		roadManager = new RoadManager(xcModelViewer, new float[][][] { r1, r2 });
+
+		// Random r = new Random(System.currentTimeMillis() / 1000 / 60 / 60 / 24);
+		// for (int i = 0; i < 100; i++) {
+		// Building.createTree(xcModelViewer, (4 + r.nextFloat()), (4 + r.nextFloat()), (4 + r.nextFloat()), r.nextFloat()
+		// * 3f * x, r.nextFloat() * 3f * x, 0, Color.rgb(200, 240, 200), Color.rgb(240, 240, 200));
+		// }
+	}
+
+	private void generateT10Task() {
+		latitude = 45;
+		time_of_day = "15";
+		type = TIME_PRECISE;
+		desc = "Epic blue day! Lots of high blue thermals but only 50% of triggers are visible! 80km task with 3 turnpoints and GOAL = START.\nFirst point to N. \nWind SW. \nCloudbase varies around 2000m.\nDifferent triggers every day!";
+		CLOUDBASE = 4f;
+		NODE_SPACING = 4 * 9f;
+		HEXAGON = 4 * 5;
+		// turn points
+		float x = 4 * 5;
+		// x /= 5; // tmp - small course for testing gliding around the turn
+		// points
+		float[] xs = { x / 2, x / 2, 2.5f * x, 2.5f * x, x / 2 };
+		float[] ys = { x / 2, 2.5f * x, 2.5f * x, x / 2, x / 2 };
+		turnPointManager = new TurnPointManager(xcModelViewer, xs, ys);
+
+		// wind
+		wind_x = 0.05f;
+		wind_y = 0.05f;
+
+		// triggers
+		triggers = new Trigger[4 * 4 * 6];
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				flatLandRandom(i * HEXAGON, j * HEXAGON, 5, CLOUDBASE);
+			}
+		}
+
+		// roads - specify start and end points
+		float[][] r1 = new float[][] { { 0, 0, 0 }, { 0.8f * x, x, 0 }, { x, 2 * x, 0 }, { 3 * x, 3 * x, 0 } };
+		float[][] r2 = new float[][] { { 0, 0, 0 }, { 0.8f * x, x + 0.1f, 0 }, { x, 2 * x + 0.1f, 0 }, { 3 * x, 3 * x + 0.1f, 0 } };
+		roadManager = new RoadManager(xcModelViewer, new float[][][] { r1, r2 });
+
+		Random r = new Random(System.currentTimeMillis() / 1000 / 60 / 60 / 24);
+		for (int i = 0; i < 100; i++) {
+			Building.createTree(xcModelViewer, (4 + r.nextFloat()), (4 + r.nextFloat()), (4 + r.nextFloat()), r.nextFloat() * 3f * x, r.nextFloat() * 3f * x,
+					0, Color.rgb(200, 240, 200), Color.rgb(240, 240, 200));
+		}
+
+	}
+
+	private void generateT11Task() {
+		latitude = 40;
+		time_of_day = "12";
+		desc = "Nice blue day with high blue thermals but only 50% of triggers visible. \n150km task to ENE. \nWind weak W. \nCloudbase varies around 3000m.\nDifferent triggers every day!";
+		type = TIME_PRECISE;
+		CLOUDBASE =	6;
+		NODE_SPACING = 3 * 12f;
+		HEXAGON = 3 * 10;
+
+		// wind
+		wind_x = 0.05f;
+		wind_y = 0.00f;
+
+		// triggers
+		Random r = new Random(System.currentTimeMillis() / 1000 / 60 / 60 / 24);
+		triggers = new Trigger[9 * 1 * 6];
+		float x_ = 0, y_ = 0;
+		for (int i = 1; i < 10; i++) {
+			// HEXAGON = (float) (CLOUDBASE * (7 + Math.pow(i, 1.46f)));
+			flatLandRandom(x_ += HEXAGON, y_ += HEXAGON / 2, 5, CLOUDBASE);
+			for (int j = 0; j < 10; j++) {
+				Building.createTree(xcModelViewer, (4 + r.nextFloat()), (4 + r.nextFloat()), (4 + r.nextFloat()), x_ + r.nextFloat() * HEXAGON,
+						y_ + r.nextFloat() * HEXAGON, 0, Color.rgb(200, 240, 200), Color.rgb(240, 240, 200));
+			}
+
+			// r1[i - 1] = new float[] { x_ + HEXAGON / 2 + (Tools.get01Value4(x_, y_) - 0.5f) * HEXAGON / 2,
+			// + (Tools.get01Value4(x_, y_) - 0.5f) * HEXAGON / 2, 0 };
+		}
+
+		float[] xs = { 3 * 10, x_ + HEXAGON };
+		float[] ys = { 3 * 10 / 2, y_ + HEXAGON * .5f };
+		turnPointManager = new TurnPointManager(xcModelViewer, xs, ys);
+
+		// roads - specify start and end points
+		float[][] r1 = new float[][] { { 0, 0, 0 }, { x_ / 3, y_ * .3f, 0 }, { x_ / 1.5f, y_ * .7f, 0 }, { x_ + HEXAGON, y_ + HEXAGON * .3f, 0 } };
+		float[][] r2 = new float[][] { { 0, 0.1f, 0 }, { x_ / 3, y_ * .3f + 0.1f, 0 }, { x_ / 1.5f, y_ * .7f + 0.1f, 0 },
+				{ x_ + HEXAGON, y_ + HEXAGON * .3f + 0.1f, 0 } };
+		roadManager = new RoadManager(xcModelViewer, new float[][][] { r1, r2 }, 20, 2);
+
 	}
 
 	private void parseFile(String taskID) throws IOException {
@@ -240,6 +477,7 @@ public class Task implements CameraSubject {
 
 		for (int i = 0; i < triggers.length; i++) {
 			triggers[i] = new Trigger(xcModelViewer, st);
+			triggers[i].cloudHeight = CLOUDBASE;
 		}
 
 		// roads
@@ -341,7 +579,7 @@ public class Task implements CameraSubject {
 	 *                 .
 	 * </pre>
 	 */
-	void flatLand(float x0, float y0, int version) {
+	void flatLand(float x0, float y0, int version, float cloudHeight) {
 		Trigger trigger;
 		float y1, x1;
 
@@ -349,26 +587,55 @@ public class Task implements CameraSubject {
 		x1 = x0 + HEXAGON;
 		float dh = HEXAGON / 6;
 		// Log.i("FC TASK", "X:" + x1 + " Y:" + y1 + " dH:" + dh);
-		trigger = new Trigger(xcModelViewer, x0 + HEXAGON / 2, y0 + dh, version);
+		trigger = new Trigger(xcModelViewer, x0 + HEXAGON / 2, y0 + dh, version, cloudHeight);
 		triggers[next++] = trigger;
 
-		trigger = new Trigger(xcModelViewer, x0 + HEXAGON / 2, y1 - dh, version);
+		trigger = new Trigger(xcModelViewer, x0 + HEXAGON / 2, y1 - dh, version, cloudHeight);
 		triggers[next++] = trigger;
 
-		trigger = new Trigger(xcModelViewer, x0 + dh, y0 + 2 * dh, version);
+		trigger = new Trigger(xcModelViewer, x0 + dh, y0 + 2 * dh, version, cloudHeight);
 		triggers[next++] = trigger;
 
-		trigger = new Trigger(xcModelViewer, x0 + dh, y1 - 2 * dh, version);
+		trigger = new Trigger(xcModelViewer, x0 + dh, y1 - 2 * dh, version, cloudHeight);
 		triggers[next++] = trigger;
 
-		trigger = new Trigger(xcModelViewer, x1 - dh, y0 + 2 * dh, version);
+		trigger = new Trigger(xcModelViewer, x1 - dh, y0 + 2 * dh, version, cloudHeight);
 		triggers[next++] = trigger;
 
-		trigger = new Trigger(xcModelViewer, x1 - dh, y1 - 2 * dh, version);
+		trigger = new Trigger(xcModelViewer, x1 - dh, y1 - 2 * dh, version, cloudHeight);
 		triggers[next++] = trigger;
 	}
 
-	void flatLand2(float x0, float y0, int version) {
+	void flatLandRandom(float x0, float y0, int version, float cloudHeight) {
+		Trigger trigger;
+		float y1, x1;
+
+		y1 = y0 + HEXAGON;
+		x1 = x0 + HEXAGON;
+		Random r = new Random(System.currentTimeMillis() / 1000 / 60 / 60 / 24);
+		float dhh = HEXAGON / 6;
+		// Log.i("FC TASK", "X:" + x1 + " Y:" + y1 + " dH:" + dh);
+		float dh = dhh + (r.nextFloat() - 0.5f) * 2;
+		trigger = new Trigger(xcModelViewer, x0 + HEXAGON / 2, y0 + dh, version, cloudHeight);
+		triggers[next++] = trigger;
+		dh = dhh + (r.nextFloat() - 0.5f) * 2;
+		trigger = new Trigger(xcModelViewer, x0 + HEXAGON / 2, y1 - dh, version, cloudHeight);
+		triggers[next++] = trigger;
+		dh = dhh + (r.nextFloat() - 0.5f) * 2;
+		trigger = new Trigger(xcModelViewer, x0 + dh, y0 + 2 * dh, version, cloudHeight);
+		triggers[next++] = trigger;
+		dh = dhh + (r.nextFloat() - 0.5f) * 2;
+		trigger = new Trigger(xcModelViewer, x0 + dh, y1 - 2 * dh, version, cloudHeight);
+		triggers[next++] = trigger;
+		dh = dhh + (r.nextFloat() - 0.5f) * 2;
+		trigger = new Trigger(xcModelViewer, x1 - dh, y0 + 2 * dh, version, cloudHeight);
+		triggers[next++] = trigger;
+		dh = dhh + (r.nextFloat() - 0.5f) * 2;
+		trigger = new Trigger(xcModelViewer, x1 - dh, y1 - 2 * dh, version, cloudHeight);
+		triggers[next++] = trigger;
+	}
+
+	void flatLand2(float x0, float y0, int version, float cloudHeight) {
 		Trigger trigger;
 		float y1, x1;
 		y1 = y0 + HEXAGON;
@@ -379,49 +646,49 @@ public class Task implements CameraSubject {
 		y = y0 + HEXAGON / 2;
 		xr = x + (Tools.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
 		yr = y + (Tools.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
-		trigger = new Trigger(xcModelViewer, xr, yr, version);
+		trigger = new Trigger(xcModelViewer, xr, yr, version, cloudHeight);
 		triggers[next++] = trigger;
 
 		x = x0 + HEXAGON / 2;
 		y = y0 + dh;
 		xr = x + (Tools.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
 		yr = y + (Tools.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
-		trigger = new Trigger(xcModelViewer, xr, yr, version);
+		trigger = new Trigger(xcModelViewer, xr, yr, version, cloudHeight);
 		triggers[next++] = trigger;
 
 		x = x0 + HEXAGON / 2;
 		y = y1 - dh;
 		xr = x + (Tools.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
 		yr = y + (Tools.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
-		trigger = new Trigger(xcModelViewer, xr, yr, version);
+		trigger = new Trigger(xcModelViewer, xr, yr, version, cloudHeight);
 		triggers[next++] = trigger;
 
 		x = x0 + dh;
 		y = y0 + 2 * dh;
 		xr = x + (Tools.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
 		yr = y + (Tools.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
-		trigger = new Trigger(xcModelViewer, xr, yr, version);
+		trigger = new Trigger(xcModelViewer, xr, yr, version, cloudHeight);
 		triggers[next++] = trigger;
 
 		x = x0 + dh;
 		y = y1 - 2 * dh;
 		xr = x + (Tools.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
 		yr = y + (Tools.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
-		trigger = new Trigger(xcModelViewer, xr, yr, version);
+		trigger = new Trigger(xcModelViewer, xr, yr, version, cloudHeight);
 		triggers[next++] = trigger;
 
 		x = x1 - dh;
 		y = y0 + 2 * dh;
 		xr = x + (Tools.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
 		yr = y + (Tools.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
-		trigger = new Trigger(xcModelViewer, xr, yr, version);
+		trigger = new Trigger(xcModelViewer, xr, yr, version, cloudHeight);
 		triggers[next++] = trigger;
 
 		x = x1 - dh;
 		y = y1 - 2 * dh;
 		xr = x + (Tools.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
 		yr = y + (Tools.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
-		trigger = new Trigger(xcModelViewer, xr, yr, version);
+		trigger = new Trigger(xcModelViewer, xr, yr, version, cloudHeight);
 		triggers[next++] = trigger;
 	}
 }

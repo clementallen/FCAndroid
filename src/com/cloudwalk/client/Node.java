@@ -9,7 +9,6 @@
  */
 package com.cloudwalk.client;
 
-import java.util.Arrays;
 import java.util.Vector;
 
 import android.graphics.Color;
@@ -26,7 +25,7 @@ class Node implements CameraSubject {
 	float x, y;
 	Trigger[] triggers;
 	int next = 0;
-	int mode = SLEEPING;
+	boolean awake = false;
 	float radius, radiusSqd;
 	Vector liftSources;
 	XCModelViewer xcModelViewer;
@@ -34,9 +33,6 @@ class Node implements CameraSubject {
 
 	// unique id for each instance of this class
 	int myID;
-
-	static final int SLEEPING = 0;
-	static final int AWAKE = 1;
 
 	public Node(XCModelViewer xcModelViewer, float x, float y, float radius, int id) {
 		this.xcModelViewer = xcModelViewer;
@@ -83,14 +79,14 @@ class Node implements CameraSubject {
 	 * triggers. Why ? An overlapping* node may have sent one of the triggers to sleep.
 	 */
 	void wakeUp(float t) {
-		// Log.i("FC Node", "Wakeup:" + myID);
+		if (awake) {
+			return;
+		}
+		Log.i("FC Node", "Wakeup:" + myID);
 		for (int i = 0; i < next; i++) {
 			triggers[i].wakeUp(t);
 		}
-		if (mode == AWAKE) {
-			return;
-		}
-		mode = AWAKE;
+		awake = true;
 		renderMe();
 	}
 
@@ -125,8 +121,8 @@ class Node implements CameraSubject {
 
 	private Obj3d obj3d;
 	static final int NUM_POINTS = 16;
-	static final int COLOR = Color.rgb(235, 235, 235);
-	boolean flagNoRender = false;
+	static final int COLOR = Color.rgb(255, 0, 0);
+	boolean flagNoRender = true;
 
 	/**
 	 * Adds a visual representation of this node to the model. We draw a big circle on the ground showing the coverage of the node.
@@ -135,9 +131,8 @@ class Node implements CameraSubject {
 		if (flagNoRender) {
 			return;
 		}
-		if (mode == AWAKE) {
-			obj3d = new Obj3d(xcModelViewer, 0, true);
-			obj3d.setNumPolywires(1);
+		if (awake) {
+			obj3d = new Obj3d(xcModelViewer);
 			float[][] ps = Tools3d.circleXY(NUM_POINTS, radius, new float[] { x, y, 0 });
 			obj3d.addPolywireClosed(ps, COLOR);
 		} else {
@@ -148,7 +143,7 @@ class Node implements CameraSubject {
 
 	/** Prints debug info. */
 	void asString() {
-		Log.i("FC", "Node(" + myID + "): x=" + Tools3d.round(x) + ", y=" + Tools3d.round(y) + ", mode=" + mode + ", nTriggers=" + next);
+		Log.i("FC", "Node(" + myID + "): x=" + Tools3d.round(x) + ", y=" + Tools3d.round(y) + ", awake=" + awake + ", nTriggers=" + next);
 	}
 
 	/**
@@ -223,6 +218,41 @@ class Node implements CameraSubject {
 		if (bestLS != null) {
 			return new LiftSourceGlide(bestLS, bestIP);
 		} else {
+			return null;
+		}
+	}
+
+	public LiftSource getRandomLS(Bird bird, boolean must_be_active) {
+		try {
+			if (liftSources == null || liftSources.size() == 0)
+				return null;
+			float[] r = new float[3];
+			float[] p = bird.p;
+			int size = liftSources.size();
+			int pos = (int) (Math.random() * size);
+			int counter = 0;
+			while (counter < size) {
+				counter++;
+				LiftSource ls = (LiftSource) liftSources.elementAt(pos);
+				if (ls instanceof Hill)
+					continue;
+				if (must_be_active) {
+					Tools3d.subtract(ls.getP(), p, r);
+					r[2] = 0; // work in a horizontal plane
+					float d = Tools3d.length(r);
+					float speed = bird.getSpeed(2);
+					float t = d / speed;
+					if (ls.isActive(t)) {
+						return ls;
+					}
+					pos++;
+					if (pos == size)
+						pos = 0;
+				} else
+					return ls;
+			}
+			return null;
+		} catch (Exception e) {
 			return null;
 		}
 	}

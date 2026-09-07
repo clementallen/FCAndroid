@@ -116,6 +116,86 @@ public class ScoreActivity extends BaseGameActivity {
 				break;
 			}
 
+		} else if ("default7".equals(task)) {
+			switch (pilot_type) {
+			case 0:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_7__pg);
+				break;
+			case 1:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_7__hg);
+				break;
+			case 2:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_7__sailplane);
+				break;
+
+			default:
+				break;
+			}
+
+		} else if ("default8".equals(task)) {
+			switch (pilot_type) {
+			case 0:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_8__pg);
+				break;
+			case 1:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_8__hg);
+				break;
+			case 2:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_8__sailplane);
+				break;
+
+			default:
+				break;
+			}
+
+		} else if ("default9".equals(task)) {
+			switch (pilot_type) {
+			case 0:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_9__pg);
+				break;
+			case 1:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_9__hg);
+				break;
+			case 2:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_9__sailplane);
+				break;
+
+			default:
+				break;
+			}
+
+		} else if ("default10".equals(task)) {
+			switch (pilot_type) {
+			case 0:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_10__pg);
+				break;
+			case 1:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_10__hg);
+				break;
+			case 2:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_10__sailplane);
+				break;
+
+			default:
+				break;
+			}
+
+		} else if ("default11".equals(task)) {
+			switch (pilot_type) {
+			case 0:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_11__pg);
+				break;
+			case 1:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_11__hg);
+				break;
+			case 2:
+				LEADERBOARD = getResources().getString(R.string.leaderboard_task_11__sailplane);
+				break;
+
+			default:
+				break;
+			}
+
 		}
 	}
 

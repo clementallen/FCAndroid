@@ -109,6 +109,7 @@ public class XCModel extends Model {
 				task.nodeManager.loadNodes(0, xcModelViewer.clock.getTime());
 			}
 		}
+		gliderManager.launchBirds();
 
 		if (!userPlay_) {
 			if (xcModelViewer.xcNet == null) {
@@ -208,7 +209,7 @@ public class XCModel extends Model {
 
 		// frame rate for when testing etc
 		if (PreferenceManager.getDefaultSharedPreferences(modelViewer.modelEnv.getContext()).getBoolean("fps", false)) {
-			String status = "FPS: " + modelViewer.clock.getFrameRate(); // tmp
+			String status = "FPS: " + modelViewer.clock.getFrameRate();//+ " TIME: "+modelViewer.clock.getTime(); // tmp
 			modelViewer.modelView.setText(status, 0);
 		}
 	}

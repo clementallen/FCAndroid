@@ -9,9 +9,12 @@
  */
 package com.cloudwalk.client;
 
+import java.util.Arrays;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.hardware.SensorEvent;
 import android.preference.Preference;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -36,8 +39,8 @@ public class GliderUser extends GliderTask {
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences((Context) xcModelViewer.modelEnv);
 		this.color = prefs.getInt("glider_color", Color.BLUE);
 		this.color2 = prefs.getInt("pilot_color", Color.YELLOW);
-		this.obj.setColor(this.color, true);
-		this.obj.setColor(this.color2, false);
+		this.obj.setColor(0, this.color);
+		this.obj.setColor(1, this.color2);
 	}
 
 	protected void createTail() {
@@ -51,10 +54,8 @@ public class GliderUser extends GliderTask {
 
 	public void tick(float t, float dt) {
 		super.tick(t, dt);
-		currentGlideSpeed();
-		groundGlideRatio = ((int) (groundGlideRatio * 10)) / 10f;
 
-		if (!landed) {
+		if (!onGround) {
 			vario.tick(t);
 			netSend(t);
 		}
@@ -99,16 +100,16 @@ public class GliderUser extends GliderTask {
 		return Math.round(x * 10000f) / 10000f;
 	}
 
-	void hitTheSpuds() {
+	public void hitTheSpuds() {
 		super.hitTheSpuds();
 		if (xcModelViewer.xcNet != null) {
-			xcModelViewer.xcNet.send("Landed");
+			xcModelViewer.xcNet.send("LANDED");
 		}
 	}
 
-	public void takeOff(boolean really, boolean send) {
+	public void launch(boolean takeoff, boolean send) {
 		Log.w("FC takeOff", "gliderUser takeoff" + myID);
-		super.takeOff(really);
+		super.launch(takeoff);
 		if (xcModelViewer.xcNet != null && send) {
 			xcModelViewer.xcNet.send("LAUNCHED: " + this.typeID + ":" + this.color + ":" + this.playerName);
 		}
@@ -142,7 +143,7 @@ public class GliderUser extends GliderTask {
 	}
 
 	public void handleTouch(View v, MotionEvent event) {
-		if (landed) {
+		if (onGround) {
 			return;
 		}
 		if (event.getActionMasked() == MotionEvent.ACTION_UP) {
@@ -171,6 +172,35 @@ public class GliderUser extends GliderTask {
 					// modelViewer.cameraMan.setSubject(this, false);
 				}
 			}
+		}
+		return;
+	}
+
+	public void handleGravity(SensorEvent event) {
+		if (onGround) {
+			return;
+		}
+		float x = event.values[0];
+		float y = event.values[1];
+		if (Math.abs(y) < 2) {
+			setMove(0);
+		} else if (y < -2) {
+			setMove(-1);
+			if (((XCCameraMan) modelViewer.cameraMan).mode != XCCameraMan.USER)
+				modelViewer.cameraMan.setSubject(this, true);
+		} else if (y > 2) {
+			setMove(1);
+			if (((XCCameraMan) modelViewer.cameraMan).mode != XCCameraMan.USER)
+				modelViewer.cameraMan.setSubject(this, true);
+		}
+		if (x < 6) {
+			setPolar(polar.size() - 1);
+		} else if (x < 7.2f) {
+			setPolar(polar.size() - 2);
+		} else if (x < 8.4) {
+			setPolar(polar.size() - 3);
+		} else {
+			setPolar(polar.size() - 4);
 		}
 		return;
 	}

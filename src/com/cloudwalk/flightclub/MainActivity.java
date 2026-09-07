@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
+import java.util.Random;
 import java.util.StringTokenizer;
 
 import android.app.Activity;
@@ -22,7 +23,6 @@ import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.text.method.DigitsKeyListener;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -131,7 +131,13 @@ public class MainActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		int online_id = prefs.getInt("online_id", 0);
+		if(online_id==0) {
+			online_id = new Random(System.currentTimeMillis()).nextInt(Integer.MAX_VALUE);
+			prefs.edit().putInt("online_id", online_id).commit();
+		}
 		if (prefs.getInt("glider_color", 7) == 7) {
 			int color = Color.rgb((int) (Math.random() * 200) + 50, (int) (Math.random() * 200) + 50, (int) (Math.random() * 200) + 50);
 			prefs.edit().putInt("glider_color", color).commit();
@@ -155,17 +161,8 @@ public class MainActivity extends Activity {
 			@Override
 			public void onClick(View v) {
 				Intent intent = null;
-				intent = new Intent(getApplicationContext(), StartFlightClub.class);
-				intent.putExtra("net", true);
-				InetAddress add;
-				// add = InetAddress.getByName(new
-				// URL("xcserver.herokuapp.com").getHost());
-				String address = "54.243.160.109:80";
-				String glider = "0";
-				String task = "default";
-				intent.putExtra("server", address);
-				intent.putExtra("glider", Integer.parseInt(glider));
-				intent.putExtra("task", task);
+				intent = new Intent(getApplicationContext(), ChooseActivity.class);
+				intent.putExtra("net_online", true);
 				startActivity(intent);
 
 			}
@@ -181,6 +178,9 @@ public class MainActivity extends Activity {
 				// finish();
 			}
 		});
+
+		prefs.edit().putBoolean("wait_service_running", false).commit();
+
 	}
 
 	private String discoverServer() {

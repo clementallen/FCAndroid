@@ -26,9 +26,8 @@ import com.cloudwalk.framework3d.Tools3d;
  */
 public class GliderAI extends GliderTask {
 	MovementManager moveManager;
-	private boolean tryLater = false; // no lift found yet so glide for a bit on
+	boolean tryLater = false; // no lift found yet so glide for a bit on
 										// track
-	LiftSource currentLS;
 	// vars for delayed camera cuts
 	boolean cutPending = false;
 	float cutWhen = 0;
@@ -50,14 +49,15 @@ public class GliderAI extends GliderTask {
 		super(xcModelViewer, gliderType, id);
 		moveManager = new MovementManager(xcModelViewer, this);
 		this.color = colors[myID % colors.length];
-		this.obj.setColor(this.color, true);
+		this.obj.setColor(0, this.color);
+		this.obj.setColor(1, Color.YELLOW);
 	}
 
 	/**
 	 * Start flying the task.
 	 */
-	public void takeOff(boolean really) {
-		super.takeOff(really);
+	public void launch() {
+		super.launch(true);
 		makeDecision(xcModelViewer.clock.getTime());
 	}
 
@@ -97,7 +97,7 @@ public class GliderAI extends GliderTask {
 		}
 
 		// am i thermalling under a decaying cloud ?
-		if (moveManager.cloud != null && moveManager.cloud.lifeCycle.isDecaying()) {
+		if (moveManager.cloud != null && moveManager.cloud.lifeCycle.isDecaying() && moveManager.cloud.getLift(p) < Cloud.LIFT_UNIT) {
 			if (Glider.filmID == myID) {
 				modelViewer.cameraMan.setSubject(this, true);
 			}
@@ -106,7 +106,7 @@ public class GliderAI extends GliderTask {
 		}
 
 		// am i at base ?
-		if (this.obj.getZmax() >= xcModelViewer.xcModel.task.CLOUDBASE && t > t_ + T_LATER) {
+		if (moveManager.cloud != null && this.p[2] >= moveManager.cloud.h && t > t_ + T_LATER) {
 			if (Glider.filmID == myID) {
 				modelViewer.cameraMan.setSubject(this, true);
 			}
@@ -256,7 +256,7 @@ public class GliderAI extends GliderTask {
 	}
 
 	public void tick(float t, float dt) {
-		if (!landed) {
+		if (!onGround) {
 			nextTurn = moveManager.nextMove();
 			tickAI(t);
 		}

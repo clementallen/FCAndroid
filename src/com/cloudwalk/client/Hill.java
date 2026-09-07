@@ -18,6 +18,7 @@ import android.util.Log;
 
 import com.cloudwalk.framework3d.CameraSubject;
 import com.cloudwalk.framework3d.Obj3d;
+import com.cloudwalk.framework3d.Obj3dStatic;
 
 /*
  a spine running // to x axis or y axis (orientation 0 or 1)
@@ -86,7 +87,9 @@ class Hill implements LiftSource, CameraSubject {
 				frontFace = 2;
 			numTiles = 2 * numSlices * (2 * Math.round(frontFace / tileWidth));
 			Log.i("FC Hill", "numTiles:" + numTiles);
-			obj3d = new Obj3d(theApp.xcModelViewer, numTiles);
+			boolean no_vbo = app.xcModelViewer.modelEnv.getPrefs().getBoolean("no_vbo", false);
+			if(no_vbo)
+				obj3d = new Obj3d(theApp.xcModelViewer);
 			tileHill();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -117,7 +120,9 @@ class Hill implements LiftSource, CameraSubject {
 		else
 			frontFace = 2;
 		numTiles = 2 * (numSlices * (2 * Math.round(frontFace / tileWidth)));
-		obj3d = new Obj3d(theApp.xcModelViewer, numTiles);
+		boolean no_vbo = app.xcModelViewer.modelEnv.getPrefs().getBoolean("no_vbo", false);
+		if(no_vbo)
+			obj3d = new Obj3d(theApp.xcModelViewer);
 		tileHill();
 		// registerWithNodes(true);
 	}
@@ -184,8 +189,21 @@ class Hill implements LiftSource, CameraSubject {
 			corners[2] = new float[] { x2, y2, getZ(i + tileWidth, j) };
 			corners[3] = new float[] { x1, y2, getZ(i + tileWidth, j - tileWidth) };
 		}
-		int pol_color = getTileColor(corners);
-		obj3d.addPolygonBent(corners, pol_color, 0);
+		//int pol_color = getTileColor(corners);
+		boolean no_vbo = app.xcModelViewer.modelEnv.getPrefs().getBoolean("no_vbo", false);		
+		
+		for (float[] corner : corners) {
+			int cdiff = (int) (corner[2] * 100); 
+			int color = Color.rgb(255-cdiff, 255-cdiff, 225-cdiff);
+			if(no_vbo)
+				obj3d.addPoint(corner[0], corner[1], corner[2], color);
+			else
+				Obj3dStatic.addPoint(corner[0], corner[1], corner[2], color);
+		}
+		if(no_vbo)
+			obj3d.addPolygon(corners, 0);
+		else
+			Obj3dStatic.addPolygon(corners, 0);
 		// object3d.addTile(corners, color, false, false);
 	}
 
@@ -195,7 +213,7 @@ class Hill implements LiftSource, CameraSubject {
 			if (Math.abs(corners[i][2]) < minz)
 				minz = Math.abs(corners[i][2]);
 		}
-		int color_corr = (int) (minz * 15);
+		int color_corr = (int) (minz * 50+30);
 		return Color.rgb(254 - color_corr, (int) 254, 254 - color_corr);
 	}
 

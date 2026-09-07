@@ -9,7 +9,10 @@
  */
 package com.cloudwalk.client;
 
-import com.cloudwalk.framework3d.*;
+import android.util.Log;
+
+import com.cloudwalk.framework3d.ModelViewer;
+import com.cloudwalk.framework3d.Obj3dDir;
 
 /**
  * This class extends Particle by adding a rigid body which has its own local
@@ -77,9 +80,11 @@ abstract class MovingBody extends Particle {
 
 		// pass message to obj
 		obj.setFrame(p, v, roll);
+		obj.transform();
 	}
 
 	public void destroyMe() {
+		Log.w("FC MovingBody", "destroyMe ");
 		modelViewer.obj3dManager.removeObj(this.obj);
 		super.destroyMe();
 	}

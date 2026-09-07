@@ -73,6 +73,7 @@ public class ModelViewer implements ClockObserver, ModelViewerThin {
 	 */
 	protected void createClock() {
 		clock = new Clock(0);
+		Clock.MAX_RATE = Integer.parseInt(modelEnv.getPrefs().getString("max_fps", "25"));
 		clock.addObserver(this);
 		if (pendingStart)
 			start();
@@ -86,13 +87,6 @@ public class ModelViewer implements ClockObserver, ModelViewerThin {
 	public void tick(float t, float dt) {
 		modelView.tick();
 		cameraMan.tick();
-		synchronized (modelView.holder) {
-			modelView.paintModel();
-		}
-		modelView.myInvalidate();
-
-		// uncomment next line to see frame rate
-		// modelCanvas.setText("F: " + clock.getFrameRate());
 	}
 
 	protected void createObj3dManager() {

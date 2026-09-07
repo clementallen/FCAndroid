@@ -10,6 +10,8 @@
 package com.cloudwalk.client;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.StringTokenizer;
 
 import android.content.SharedPreferences;
@@ -25,6 +27,7 @@ import com.cloudwalk.framework3d.Tools3d;
 public class GliderManager implements ClockObserver {
 	XCModelViewer xcModelViewer;
 	GliderAI[] gliderAIs;
+	List<Bird> birds; 
 	public GliderUser gliderUser = null;
 	private int pNode_ = 0;
 	private int n = 1; // count as we create gliders (user glider is always
@@ -34,9 +37,10 @@ public class GliderManager implements ClockObserver {
 	int numNet = 0; // how many connected
 	boolean raceStarted = false;
 
-	static final int MAX_USERS = 10; // Max number of Connected Users
-	static final int NUM_TYPES = 4; // how many glider types
-	static final String[] typeNames = new String[] { "paraglider", "hang-glider", "sailplane", "balloon" };
+	static final int MAX_USERS = 20; // Max number of Connected Users
+	static final int NUM_TYPES = 5; // how many glider types
+	static GliderType[] types = new GliderType[5]; // array of glider types (pg, hg, sp)
+	static final String[] typeNames = new String[] { "paraglider", "hang-glider", "sailplane", "balloon", "vulture" };
 
 	public GliderManager(XCModelViewer xcModelViewer, int pilotType) {
 		this.xcModelViewer = xcModelViewer;
@@ -46,11 +50,9 @@ public class GliderManager implements ClockObserver {
 			createUser(pilotType);
 		if (xcModelViewer.netFlag) {
 			netGliders = new GliderTask[MAX_USERS];
-		}
+		} 
+		birds = new ArrayList<Bird>();
 	}
-
-	static GliderType[] types = new GliderType[4]; // array of glider types (pg,
-													// hg, sp)
 
 	/**
 	 * Loads the glider types (reads polar data etc from a text file).
@@ -61,6 +63,7 @@ public class GliderManager implements ClockObserver {
 			types[1] = new GliderType(xcModelViewer, "hangglider", 1);
 			types[2] = new GliderType(xcModelViewer, "sailplane", 2);
 			types[3] = new GliderType(xcModelViewer, "balloon", 3);
+			types[4] = new GliderType(xcModelViewer, "vulture", 4);
 		} catch (IOException e) {
 			Log.e("FC", e.getMessage(), e);
 			System.exit(1);
@@ -82,7 +85,7 @@ public class GliderManager implements ClockObserver {
 			}
 		}
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(xcModelViewer.modelEnv.getContext());
-		gliderUser = new GliderUser(xcModelViewer, types[pilotType], id, prefs.getString("playerName", "P" + getRandomLetter()));
+		gliderUser = new GliderUser(xcModelViewer, types[pilotType], id, prefs.getString("playerName", "P" + getRandomLetter() + getRandomLetter()));
 		pilotType_ = pilotType;
 	}
 
@@ -104,6 +107,16 @@ public class GliderManager implements ClockObserver {
 				gliderAIs[next++] = new GliderAI(xcModelViewer, types[type], n++);
 			}
 		}
+	}
+	
+	public Bird addBird(float x, float y, float z) {
+		Bird bird = new Bird(xcModelViewer, types[4], n++);
+		birds.add(bird);
+		bird.p[0] = x;
+		bird.p[1] = y;
+		bird.p[2] = z;
+		Log.i("FC Bird", "Total birds: " + birds.size());
+		return bird;
 	}
 
 	/**
@@ -149,7 +162,7 @@ public class GliderManager implements ClockObserver {
 			return null;
 		} else if (gliderAIs.length > 0) {
 			nextGaggle++;
-			nextGaggle%=gliderAIs.length;
+			nextGaggle %= gliderAIs.length;
 			return gliderAIs[nextGaggle];
 		} else {
 			return null;
@@ -157,9 +170,11 @@ public class GliderManager implements ClockObserver {
 	}
 
 	/** Returns either user or demo glider. */
-	Glider theGlider() {
+	public Glider theGlider() {
 		if (xcModelViewer.xcModel.mode == XCModel.DEMO) {
-			return gliderAIs[nextGaggle];
+			if (gliderAIs != null)
+				return gliderAIs[nextGaggle];
+			return null;
 		} else {
 			return gliderUser;
 		}
@@ -195,6 +210,10 @@ public class GliderManager implements ClockObserver {
 					this.setLift(gliderAIs[i], nodes);
 				}
 			}
+		}
+
+		for (int i = 0; i < birds.size(); i++) {
+			this.setLift(birds.get(i), nodes);
 		}
 
 		if ((t - t_) > T_INTERVAL) {
@@ -241,19 +260,22 @@ public class GliderManager implements ClockObserver {
 	 * @see XCGameNetConnector
 	 */
 	void addUser(int index, int type) {
+		Log.i("FC GM", "Adding new user at: " + index);
 		netGliders[index] = new GliderTask(xcModelViewer, types[type], index);
-		netType[index] = type;
 		numNet++;
 	}
 
-	int[] netType = new int[MAX_USERS];
+	void addUserIfNecessary(int index, int type) {
+		if (netGliders[index] == null)
+			addUser(index, type);
+	}
 
 	/**
 	 * Allows net users to change thier wing type.
 	 */
 	void changeNetGlider(int index, int pilotType, int color) {
 		if (netGliders[index] != null) {
-			if (pilotType == netType[index] && netGliders[index].color == color) {
+			if (pilotType == netGliders[index].typeID && netGliders[index].color == color) {
 				// do nothing
 				return;
 			} else {
@@ -263,70 +285,79 @@ public class GliderManager implements ClockObserver {
 		}
 		netGliders[index] = new GliderTask(xcModelViewer, types[pilotType], index);
 		netGliders[index].color = color;
-		netGliders[index].obj.setColor(color, true);
-		netType[index] = pilotType;
+		netGliders[index].obj.setColor(0, color);
 	}
 
 	void launchAIs() {
 		for (int i = 0; i < gliderAIs.length; i++) {
-			gliderAIs[i].takeOff(true);
+			gliderAIs[i].putOnStart();
+			gliderAIs[i].launch();
 		}
 		pNode_ = 0;
 	}
 
+	public void launchBirds() {
+		for (Bird bird : birds) {
+			bird.launch();
+		}
+	}
 	/**
 	 * Take off - puts gliders near start point and heading towards next turn point.
 	 */
 	void launchUser() {
+		Log.i("FCGM launchUser", "numNet:" + numNet + " raceStarted:" + raceStarted + " launchedByUser:" + gliderUser.launchPending);
 		if (!xcModelViewer.netFlag) {
-			gliderUser.takeOff(true, false);
+			gliderUser.putOnStart();
+			gliderUser.launch(true, false);
 		} else {
 			if (raceStarted)
 				checkRaceOver();
-			gliderUser.launched = true;
+			gliderUser.launch(false, true);
 			if (!raceStarted && allLaunched()) {
-				startRace(true);
-			} else {
-				gliderUser.takeOff(false, true);
+				startRace();
 			}
 		}
 		pNode_ = 0;
-		Log.i("FCGM launchUser", "numNet:" + numNet + " raceStarted:" + raceStarted + " launchedByUser:" + gliderUser.launched);
 	}
 
 	void launchNetUser(int index) {
-		checkRaceOver();
-		netGliders[index].launched = true;
-		netGliders[index].racing = false;
-		if (allLaunched()) {
-			if (!raceStarted) {
-				startRace(false);
-			} else { // takeOff(false) already in constructor
-			}
+		Log.i("FCGM launchNetUser", "numNet:" + numNet + " raceStarted:" + raceStarted + " launchedByUser:" + gliderUser.launchPending);
+		if (netGliders[index].racing)
+			return;
+		if (raceStarted)
+			checkRaceOver();
+		netGliders[index].launch(false);
+		if (!raceStarted && allLaunched()) {
+			startRace();
 		}
-		Log.i("FCGM launchNetUser", "numNet:" + numNet + " raceStarted:" + raceStarted + " launchedByUser:" + gliderUser.launched);
+		Log.i("FCGM launchNetUser", "numNet:" + numNet + " raceStarted:" + raceStarted + " launchedByUser:" + gliderUser.launchPending);
 	}
 
 	// todo - not needed ?
 	void landNetUser(int index) {
+		Log.i("FCGM landNetUser", "numNet:" + numNet + " raceStarted:" + raceStarted + " launchedByUser:" + gliderUser.launchPending);
 		netGliders[index].hitTheSpuds();
 		checkRaceOver();
-		Log.i("FCGM landNetUser", "numNet:" + numNet + " raceStarted:" + raceStarted + " launchedByUser:" + gliderUser.launched);
+		Log.i("FCGM landNetUser", "numNet:" + numNet + " raceStarted:" + raceStarted + " launchedByUser:" + gliderUser.launchPending);
 	}
 
 	void nameNetUser(int index, String playerName) {
-		netGliders[index].setPlayerName(playerName);
-		Log.i("FCGM nameNetUser", "numNet:" + numNet + " raceStarted:" + raceStarted + " launchedByUser:" + gliderUser.launched);
+		if (!playerName.equals(netGliders[index].getPlayerName())) {
+			netGliders[index].setPlayerName(playerName);
+			xcModelViewer.modelEnv.sendMessage("Player: " + playerName + " joined the game.");
+		}
+		// Log.i("FCGM nameNetUser", "numNet:" + numNet + " raceStarted:" + raceStarted + " launchedByUser:" + gliderUser.launchPending);
 	}
 
-	void startRace(boolean sendUserLaunch) {
+	void startRace() {
+		Log.i("FCGM startRace", "numNet:" + numNet + " raceStarted:" + raceStarted + " launchedByUser:" + gliderUser.launchPending);
 		for (int i = 0; i < MAX_USERS; i++) {
 			if (netGliders[i] != null)
-				netGliders[i].takeOff(true);
+				netGliders[i].launch(true);
 		}
-		gliderUser.takeOff(true, sendUserLaunch);
+		gliderUser.launch(true, false);
 		raceStarted = true;
-		Log.i("FCGM startRace", "numNet:" + numNet + " raceStarted:" + raceStarted + " launchedByUser:" + gliderUser.launched);
+		Log.i("FCGM startRace", "numNet:" + numNet + " raceStarted:" + raceStarted + " launchedByUser:" + gliderUser.launchPending);
 	}
 
 	public boolean checkRaceOver() {
@@ -345,14 +376,14 @@ public class GliderManager implements ClockObserver {
 		netGliders[index] = null;
 		gliderUser.myID = index;
 		// now we can get the correct starting position
-		gliderUser.takeOff(false, false);
+		gliderUser.putOnStart();
 	}
 
 	void changeUser(int index, String line) { // Change position of User at
 												// index
-		if (netGliders[index].landed) {
+		if (!raceStarted && !netGliders[index].launchPending) {
 			Log.e("FC", "Does this ever happen?");
-			netGliders[index].takeOff(true);
+			launchNetUser(index);
 		}
 
 		StringTokenizer tokens = new StringTokenizer(line, ":");
@@ -371,39 +402,35 @@ public class GliderManager implements ClockObserver {
 	 */
 	void removeUser(int index) {
 		if (index >= 0 && netGliders[index] != null) {
-			if (!netGliders[index].getLanded())
-				netGliders[index].destroyMe();
+			xcModelViewer.modelEnv.sendMessage("Player: " + netGliders[index].getPlayerName() + " left the game.");
+			netGliders[index].destroyMe();
 			netGliders[index] = null;
 			numNet--;
 		}
 	}
 
 	boolean allLaunched() {
-		Glider g;
 		int numLaunched = 0;
 		for (int i = 0; i < netGliders.length; i++) {
-			g = netGliders[i];
-			if (g == null)
+			if (netGliders[i] == null)
 				continue;
-			if (g.launched)
+			if (netGliders[i].launchPending)
 				numLaunched++;
 		}
-		if (numLaunched == numNet && gliderUser.launched)
+		if (numLaunched == numNet && numNet > 0 && gliderUser.launchPending)
 			return true;
 		return false;
 	}
 
-	boolean allLanded() {
-		Glider g;
+	boolean allLanded() { // all that were racing landed
 		int numRacing = 0;
 		int numLanded = 0;
 		for (int i = 0; i < netGliders.length; i++) {
-			g = netGliders[i];
-			if (g == null)
+			if (netGliders[i] == null)
 				continue;
-			if (g.racing) {
+			if (netGliders[i].racing) {
 				numRacing++;
-				if (g.landed)
+				if (netGliders[i].landed)
 					numLanded++;
 			}
 		}
@@ -413,22 +440,26 @@ public class GliderManager implements ClockObserver {
 				numLanded++;
 		}
 
-		if (numLanded == numRacing)
+		if (numLanded == numRacing) {
+			Log.i("FC GM", "allLanded");
 			return true;
+		}
 		return false;
 	}
 
 	void raceOver() {
+		Log.i("FC GM", "raceOver");
 		Glider g;
 		for (int i = 0; i < netGliders.length; i++) {
 			g = netGliders[i];
 			if (g == null)
 				continue;
-			if (g.racing && g.landed) {
+			if (g.racing) {
 				g.racing = false;
+				g.landed = false;
 			}
 		}
 		gliderUser.racing = false;
-
+		gliderUser.landed = false;
 	}
 }

@@ -17,6 +17,7 @@ import android.util.Log;
 
 import com.cloudwalk.framework3d.FileFormatException;
 import com.cloudwalk.framework3d.Obj3d;
+import com.cloudwalk.framework3d.Obj3dStatic;
 import com.cloudwalk.framework3d.Tools3d;
 
 /**
@@ -25,6 +26,7 @@ import com.cloudwalk.framework3d.Tools3d;
 public class RoadManager {
 	XCModelViewer xcModelViewer;
 	Road[] roads;
+	boolean rendered = false;
 
 	public RoadManager(XCModelViewer xcModelViewer, StreamTokenizer st) throws IOException {
 		this(xcModelViewer, st, 10f, 2f);
@@ -63,8 +65,11 @@ public class RoadManager {
 	}
 
 	void renderMe() {
-		for (int i = 0; i < roads.length; i++) {
-			roads[i].renderMe();
+		if (!rendered) {
+			for (int i = 0; i < roads.length; i++) {
+				roads[i].renderMe();
+			}
+			rendered = true;
 		}
 	}
 
@@ -135,9 +140,11 @@ class Road {
 	}
 
 	private Obj3d obj3d = null;
-	static final int COLOR_ROAD = Color.rgb(255, 175, 175); // PINK
+	static final int COLOR_ROAD = Color.rgb(255, 0, 0); // PINK
 
 	void renderMe() {
+		boolean no_vbo = xcModelViewer.modelEnv.getPrefs().getBoolean("no_vbo", false);
+
 		NodeManager nodeManager = xcModelViewer.xcModel.task.nodeManager;
 
 		// start afresh
@@ -156,12 +163,15 @@ class Road {
 				n++;
 			}
 		}
-
-		obj3d = new Obj3d(xcModelViewer, 0, true);
-		obj3d.setNumPolywires(n);
-
-		for (int i = 0; i < n; i++) { // note we use n and *not* ps.length
-			obj3d.addPolywire(pss[i], COLOR_ROAD);
+		if (no_vbo) {
+			obj3d = new Obj3d(xcModelViewer);
+			for (int i = 0; i < n; i++) { // note we use n and *not* ps.length
+				obj3d.addPolywire(pss[i], COLOR_ROAD);
+			}
+		} else {
+			for (int i = 0; i < n; i++) { // note we use n and *not* ps.length
+				Obj3dStatic.addPolywire(pss[i], COLOR_ROAD);
+			}
 		}
 	}
 

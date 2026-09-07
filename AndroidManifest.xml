@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.cloudwalk.flightclub"
-    android:versionCode="21"
-    android:versionName="0.4.5.1" >
+    android:versionCode="51"
+    android:versionName="0.7.2" >
 
     <uses-sdk android:minSdkVersion="9" />
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
-
+    <uses-feature
+        android:glEsVersion="0x00020000"
+        android:required="true" />
+    
     <uses-feature
         android:name="android.hardware.telephony"
         android:required="false" />
@@ -71,6 +74,11 @@
             android:name=".ScoreActivity"
             android:label="@string/title_activity_score" >
         </activity>
+        <service
+            android:name="com.cloudwalk.flightclub.WaitService"
+            android:label="Flight CLub wait online users" >
+        </service>
+        
     </application>
 
 </manifest>
