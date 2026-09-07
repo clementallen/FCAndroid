@@ -4,6 +4,8 @@
         Base application theme, dependent on API level. This theme is replaced
         by AppBaseTheme from res/values-vXX/styles.xml on newer devices.
     -->
+    <style name="MenuTheme" parent="android:Theme.DeviceDefault.Light"></style>
+
     <style name="AppTheme" parent="android:Theme.Light.NoTitleBar.Fullscreen"></style>
 
     <style name="button_text">
