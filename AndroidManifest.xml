@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.cloudwalk.flightclub"
     android:versionCode="51"
     android:versionName="0.7.2" >
-
-    <uses-sdk android:minSdkVersion="9" />
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -36,15 +33,15 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
-        <meta-data
-            android:name="com.google.android.gms.version"
-            android:value="@integer/google_play_services_version" />
-        <meta-data
-            android:name="com.google.android.gms.games.APP_ID"
-            android:value="@string/app_id" />
+        <uses-library
+            android:name="org.apache.http.legacy"
+            android:required="false" />
+
 
         <activity
+            android:exported="true"
             android:name=".MainActivity"
+            android:theme="@style/MenuTheme"
             android:label="@string/app_name"
             android:screenOrientation="landscape" >
             <intent-filter>
@@ -60,6 +57,7 @@
         </activity>
         <activity
             android:name=".ChooseActivity"
+            android:theme="@style/MenuTheme"
             android:label="Choose"
             android:screenOrientation="landscape" >
         </activity>

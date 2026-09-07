@@ -1,11 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Flight Club</string>
+    <string name="app_name">Flight Club (src 0.7.2)</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_start_flight_club">Start Flight Club</string>
     <string name="dialog_color_picker">Choose color</string>
     <string name="title_activity_score">ScoreActivity</string>
     <string name="title_activity_choose">Choose</string>
+
+    <string name="leaderboard_task_10__hg">unused_offline_build</string>
+    <string name="leaderboard_task_10__pg">unused_offline_build</string>
+    <string name="leaderboard_task_10__sailplane">unused_offline_build</string>
+    <string name="leaderboard_task_11__hg">unused_offline_build</string>
+    <string name="leaderboard_task_11__pg">unused_offline_build</string>
+    <string name="leaderboard_task_11__sailplane">unused_offline_build</string>
+    <string name="leaderboard_task_1__hg">unused_offline_build</string>
+    <string name="leaderboard_task_1__pg">unused_offline_build</string>
+    <string name="leaderboard_task_1__sailplane">unused_offline_build</string>
+    <string name="leaderboard_task_2__hg">unused_offline_build</string>
+    <string name="leaderboard_task_2__pg">unused_offline_build</string>
+    <string name="leaderboard_task_2__sailplane">unused_offline_build</string>
+    <string name="leaderboard_task_3__hg">unused_offline_build</string>
+    <string name="leaderboard_task_3__pg">unused_offline_build</string>
+    <string name="leaderboard_task_3__sailplane">unused_offline_build</string>
+    <string name="leaderboard_task_4__hg">unused_offline_build</string>
+    <string name="leaderboard_task_4__pg">unused_offline_build</string>
+    <string name="leaderboard_task_4__sailplane">unused_offline_build</string>
+    <string name="leaderboard_task_5__hg">unused_offline_build</string>
+    <string name="leaderboard_task_5__pg">unused_offline_build</string>
+    <string name="leaderboard_task_5__sailplane">unused_offline_build</string>
+    <string name="leaderboard_task_6__hg">unused_offline_build</string>
+    <string name="leaderboard_task_6__pg">unused_offline_build</string>
+    <string name="leaderboard_task_6__sailplane">unused_offline_build</string>
+    <string name="leaderboard_task_7__hg">unused_offline_build</string>
+    <string name="leaderboard_task_7__pg">unused_offline_build</string>
+    <string name="leaderboard_task_7__sailplane">unused_offline_build</string>
+    <string name="leaderboard_task_8__hg">unused_offline_build</string>
+    <string name="leaderboard_task_8__pg">unused_offline_build</string>
+    <string name="leaderboard_task_8__sailplane">unused_offline_build</string>
+    <string name="leaderboard_task_9__hg">unused_offline_build</string>
+    <string name="leaderboard_task_9__pg">unused_offline_build</string>
+    <string name="leaderboard_task_9__sailplane">unused_offline_build</string>
 
 </resources>

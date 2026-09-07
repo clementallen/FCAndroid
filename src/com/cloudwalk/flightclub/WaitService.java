@@ -13,7 +13,6 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.cloudwalk.server.Client;
@@ -86,7 +85,7 @@ public class WaitService extends IntentService  {
 					notificationIntent.setAction("android.intent.action.MAIN");
 					notificationIntent.addCategory("android.intent.category.DEFAULT");
 					PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
-					Notification notification = new NotificationCompat.Builder(this)
+					Notification notification = new Notification.Builder(this)
 			         .setContentTitle("Flight Club")
 			         .setContentText("There are new users waiting for/playing an online game!")
 			         .setSmallIcon(R.drawable.ic_launcher)

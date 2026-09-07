@@ -4,3 +4,11 @@
 /.project
 /proguard-project.txt
 /project.properties
+
+# Gradle
+/.gradle/
+/build/
+/local.properties
+
+# macOS
+.DS_Store
