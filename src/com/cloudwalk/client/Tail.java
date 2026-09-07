@@ -10,7 +10,6 @@
 package com.cloudwalk.client;
 
 import com.cloudwalk.framework3d.*;
-import java.awt.*;
 import java.util.*;
 
 /**

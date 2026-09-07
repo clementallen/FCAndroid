@@ -2,10 +2,9 @@ package com.cloudwalk.flightclub;
 
 import android.os.Bundle;
 
-import com.google.android.gms.games.Games;
-import com.google.example.games.basegameutils.BaseGameActivity;
+import android.app.Activity;
 
-public class ScoreActivity extends BaseGameActivity {
+public class ScoreActivity extends Activity {
 	int pilot_type;
 	int best_time;
 	boolean show_all;
@@ -199,20 +198,4 @@ public class ScoreActivity extends BaseGameActivity {
 		}
 	}
 
-	@Override
-	public void onSignInFailed() {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void onSignInSucceeded() {
-		if (show_all) {
-			startActivityForResult(Games.Leaderboards.getAllLeaderboardsIntent(getApiClient()), 111);
-		} else {
-			Games.Leaderboards.submitScore(getApiClient(), LEADERBOARD, best_time);
-			startActivityForResult(Games.Leaderboards.getLeaderboardIntent(getApiClient(), LEADERBOARD), 111);
-		}
-		finish();
-	}
 }

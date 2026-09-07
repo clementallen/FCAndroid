@@ -10,7 +10,6 @@
 package com.cloudwalk.startup;
 
 import java.io.*;
-import java.awt.*;
 
 import android.content.Context;
 import android.content.SharedPreferences;
