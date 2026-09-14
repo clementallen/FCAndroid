@@ -1,0 +1,27 @@
+plugins {
+    id 'java'
+    id 'org.teavm' version '0.15.0'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+dependencies {
+    implementation project(':core')
+    implementation teavm.libs.jsoApis
+}
+
+teavm {
+    // Start on the JS backend: source maps, universal browser support.
+    // wasmGC is a config change once the game runs.
+    js {
+        addedToWebApp = true
+        mainClass = 'com.cloudwalk.web.WebMain'
+        obfuscated = false
+        sourceMap = true
+        outputDir = file("$buildDir/generated/teavm/js")
+        targetFileName = 'flightclub.js'
+    }
+}
