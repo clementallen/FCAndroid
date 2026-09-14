@@ -54,8 +54,14 @@ import com.cloudwalk.client.XCCameraMan;
 import com.cloudwalk.client.XCModelViewer;
 import com.cloudwalk.flightclub.GravityListener.OnGravityListener;
 import com.cloudwalk.framework3d.ClockObserver;
-import com.cloudwalk.framework3d.ModelView;
+import com.cloudwalk.android.AndroidPrefs;
+import com.cloudwalk.android.FlightClubSurfaceView;
+import com.cloudwalk.android.LogcatSink;
+import com.cloudwalk.android.SocketNetLink;
 import com.cloudwalk.framework3d.ModelViewRenderer;
+import com.cloudwalk.platform.NetLink;
+import com.cloudwalk.platform.PointerEvent;
+import com.cloudwalk.platform.Prefs;
 import com.cloudwalk.framework3d.Obj3dStatic;
 import com.cloudwalk.server.Client;
 import com.cloudwalk.server.XCGameServer;
@@ -79,7 +85,7 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 	int[] streamIDs;
 	boolean sinking = false;
 	float currentSpeed;
-	ModelView surfaceView;
+	FlightClubSurfaceView surfaceView;
 	GestureDetector detector;
 	GravityListener mGravity;
 	int control_type;
@@ -161,7 +167,7 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 					if (v.getVisibility() == View.VISIBLE)
 						v.setVisibility(View.GONE);
 				}
-				((TextView) findViewById(R.id.info)).setText(Html.fromHtml(surfaceView.getInfoText()));
+				((TextView) findViewById(R.id.info)).setText(Html.fromHtml(surfaceView.modelView.getInfoText()));
 				((SeekBar) findViewById(R.id.vario)).setProgress((int) (50 + ((XCModelViewer) modelViewerThin).xcModel.gliderManager.theGlider()
 						.getActualSink() / 0.37f * 50));
 				if (flying && glider.airv < 0 && !sinking && prefs.getBoolean("sink_tone", true)) {
@@ -367,22 +373,22 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 		 * } else { if (s[2].indexOf(":") > 0) { hostPort = s[2]; typeNums = null; } else { hostPort = null; try { for (int i = 0; i < 3; i++) { typeNums[i] =
 		 * parseInt(s[i + 2]); } } catch (Exception e) { Log.i("FC", "Error reading AI glider numbers: " + e); typeNums = new int[] {2, 5, 2}; } } }
 		 */
-		final ModelView modelView = (ModelView) findViewById(R.id.xcmodelview);
+		final FlightClubSurfaceView glView = (FlightClubSurfaceView) findViewById(R.id.xcmodelview);
 		((SeekBar) findViewById(R.id.vario)).setEnabled(false);
 
-		surfaceView = modelView;
-		modelViewerThin = new XCModelViewer(modelView);
-		modelView.modelViewer = (XCModelViewer) modelViewerThin;
-		modelView.setOnTouchListener(StartFlightClub.this);
+		surfaceView = glView;
+		modelViewerThin = new XCModelViewer(glView.modelView);
+		glView.modelView.modelViewer = (XCModelViewer) modelViewerThin;
+		glView.setOnTouchListener(StartFlightClub.this);
 
-		modelView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+		glView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
 			@Override
 			public void onGlobalLayout() {
 				// Remove it here unless you want to get this callback for EVERY
 				// layout pass, which can get you into infinite loops if you
 				// ever
 				// modify the layout from within this method.
-				modelView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
+				glView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
 				startWorldIfNeeded();
 				// Check if the system supports OpenGL ES 2.0.
 				final ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
@@ -391,11 +397,11 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 
 				if (supportsEs2) {
 					// Request an OpenGL ES 2.0 compatible context.
-					modelView.setEGLContextClientVersion(2);
+					glView.setEGLContextClientVersion(2);
 					// Set the renderer to our demo renderer, defined below.
-					renderer = new ModelViewRenderer(StartFlightClub.this);
+					renderer = new ModelViewRenderer(getPrefs());
 					renderer.modelViewer = (XCModelViewer) modelViewerThin;
-					modelView.setRenderer(renderer);
+					glView.setModelRenderer(renderer);
 				} else {
 					Tools.showInfoDialog("Problem", "It seems your device doesn't support OpenGL 2.0", StartFlightClub.this);
 					return;
@@ -666,6 +672,33 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 		return typeNums;
 	}
 
+	private Prefs enginePrefs;
+
+	@Override
+	public Prefs getPrefs() {
+		if (enginePrefs == null) {
+			enginePrefs = new AndroidPrefs(this);
+		}
+		return enginePrefs;
+	}
+
+	@Override
+	public void showDialog(String title, String msg) {
+		Tools.showInfoDialog(title, msg, this);
+	}
+
+	@Override
+	public NetLink openNetLink(String hostPort, NetLink.Listener listener) {
+		try {
+			SocketNetLink link = new SocketNetLink(hostPort, listener);
+			link.start();
+			return link;
+		} catch (IOException e) {
+			com.cloudwalk.platform.Log.e("FC", "could not reach game server at " + hostPort, e);
+			return null;
+		}
+	}
+
 	public InputStream openFile(String name) {
 		InputStream is = null;
 		try {
@@ -687,8 +720,9 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
-		((XCModelViewer) modelViewerThin).xcModel.gliderManager.gliderUser.handleTouch(v, event);
-		((ModelView) findViewById(R.id.xcmodelview)).handleTouch(v, event);
+		PointerEvent p = surfaceView.toPointerEvent(event);
+		((XCModelViewer) modelViewerThin).xcModel.gliderManager.gliderUser.handleTouch(p);
+		surfaceView.modelView.handleTouch(p);
 		detector.onTouchEvent(event);
 		return true;
 	}
@@ -696,7 +730,7 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 	@Override
 	public void onEvent(SensorEvent event) {
 		try {
-			((XCModelViewer) modelViewerThin).xcModel.gliderManager.gliderUser.handleGravity(event);
+			((XCModelViewer) modelViewerThin).xcModel.gliderManager.gliderUser.handleGravity(event.values[0], event.values[1]);
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
@@ -790,16 +824,6 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 	@Override
 	public void setTask(String task) {
 		this.task = task;
-	}
-
-	@Override
-	public Context getContext() {
-		return this;
-	}
-
-	@Override
-	public SharedPreferences getPrefs() {
-		return prefs;
 	}
 
 	@Override
