@@ -32,6 +32,11 @@ which is what keeps them honest about behaving the same.
 `npm run engine` alone runs the Gradle TeaVM build. Requires JDK 17+ (TeaVM's
 compiler needs it; the engine itself is Java 8).
 
+Vite's hot reload watches `shell/` only - it has no idea the engine came from
+Java. `dev` compiles it once at startup, so **after editing anything under
+`core/` or `web/`, run `npm run engine` and reload**. Editing TypeScript, CSS
+or HTML hot-reloads as usual.
+
 ## Building the Android app
 
     ./gradlew :android:assembleDebug
