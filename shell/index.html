@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#7fb4d4" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Flight Club</title>
+    <meta
+      name="description"
+      content="Cross-country hang gliding and paragliding. Find the thermals, get round the task."
+    />
+  </head>
+  <body data-screen="loading">
+    <main id="menu">
+      <header class="bar">
+        <img class="bar-icon" src="/favicon.svg" alt="" width="28" height="28" />
+        <h1>Choose</h1>
+        <button id="open-settings" class="bar-more" aria-label="Settings" title="Settings">
+          <svg width="4" height="18" viewBox="0 0 4 18" aria-hidden="true">
+            <circle cx="2" cy="2" r="2" /><circle cx="2" cy="9" r="2" /><circle cx="2" cy="16" r="2" />
+          </svg>
+        </button>
+      </header>
+
+      <div class="chooser">
+        <div id="gliders" class="gliders" role="radiogroup" aria-label="Glider"></div>
+        <div id="tasks" class="tasks"></div>
+      </div>
+
+      <footer>
+        <p class="keys">
+          <kbd>&larr;</kbd><kbd>&rarr;</kbd> turn &middot;
+          <kbd>&uarr;</kbd><kbd>&darr;</kbd> speed &middot;
+          <kbd>1</kbd>&ndash;<kbd>5</kbd> camera &middot;
+          <kbd>Space</kbd> pause &middot; drag to orbit, scroll to zoom
+        </p>
+        <p>
+          Originally a Java applet by
+          <a href="http://www.glider-pilot.co.uk/Flight%20club/hg.htm"
+             target="_blank" rel="noopener noreferrer">Dan Burton</a>,
+          2001&ndash;2003. GPL.
+        </p>
+      </footer>
+    </main>
+
+    <div id="game">
+      <canvas id="gl"></canvas>
+      <div id="hud"></div>
+      <div id="messages" role="status" aria-live="polite"></div>
+
+      <!-- The Android controls screen (res/layout/controls.xml), which is
+           weighted 2:3:2 across and down the middle column - the same sevenths
+           GliderUser.handleTouch steers by. Tapping anywhere dismisses it. -->
+      <div id="controls-help" hidden>
+        <div class="ch-col ch-side"><span>Turn left</span></div>
+        <div class="ch-col ch-middle">
+          <div class="ch-cell ch-box"><span>Speed up</span></div>
+          <div class="ch-cell ch-hint">
+            <span>
+              drag here to change view<br />
+              <b class="ch-keys">1&ndash;5 : camera views &middot; +/&minus; : zoom &middot; space : pause<br /></b>
+              tap to dismiss
+            </span>
+          </div>
+          <div class="ch-cell ch-box"><span>Slow down</span></div>
+        </div>
+        <div class="ch-col ch-side"><span>Turn right</span></div>
+      </div>
+
+      <div id="game-actions">
+        <div id="cameras"></div>
+        <button id="pause">Pause</button>
+        <button id="fullscreen" aria-label="Full screen" title="Full screen">Full screen</button>
+        <button id="quit">Quit</button>
+      </div>
+    </div>
+
+    <!-- The projection fixes the vertical field of view and lets width follow
+         the aspect ratio (ModelViewRenderer), so a portrait phone sees under a
+         quarter of the width a landscape one does. Rather than render that,
+         ask for the rotation. -->
+    <div id="rotate">
+      <div class="rotate-card">
+        <svg viewBox="0 0 48 48" width="64" height="64" aria-hidden="true">
+          <rect class="rotate-phone" x="17" y="7" width="14" height="34" rx="3" />
+          <line class="rotate-phone" x1="22" y1="37" x2="26" y2="37" />
+        </svg>
+        <p>Turn your phone sideways to fly.</p>
+      </div>
+    </div>
+
+    <dialog id="settings">
+      <h2>Settings</h2>
+      <form id="settings-form" method="dialog"></form>
+      <div class="dialog-actions">
+        <button id="settings-reset" type="button">Reset</button>
+        <button id="close-settings" type="button" class="primary">Done</button>
+      </div>
+      <p class="note">Changes apply the next time you fly.</p>
+    </dialog>
+
+    <dialog id="dialog">
+      <h2 id="dialog-title"></h2>
+      <p id="dialog-body"></p>
+      <div class="dialog-actions">
+        <button id="dialog-ok" type="button" class="primary">OK</button>
+      </div>
+    </dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

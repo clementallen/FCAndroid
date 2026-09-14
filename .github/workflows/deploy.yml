@@ -1,0 +1,57 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# One deploy at a time. A queued run is superseded by a newer one rather
+# than racing it, but a run already publishing is left to finish.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy to Cloudflare
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The wrapper jar is a binary in the repo, so check it is a real one
+      - uses: gradle/actions/wrapper-validation@v4
+
+      # The daemon is pinned to 21 by gradle/gradle-daemon-jvm.properties;
+      # installing it here means the runner does not have to download one.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: shell/package-lock.json
+
+      - name: Install shell dependencies
+        working-directory: shell
+        run: npm ci
+
+      # Compiles the Java engine with TeaVM, typechecks the shell and the
+      # Worker, then bundles everything into dist/.
+      - name: Build the browser bundle
+        working-directory: shell
+        run: npm run build
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Match the version in shell/package.json so CI deploys what was
+          # tested locally. wrangler 3 silently ignored the assets config.
+          wranglerVersion: '4.129.0'

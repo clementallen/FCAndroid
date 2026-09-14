@@ -1,0 +1,556 @@
+/* Flight Club - shell chrome. The canvas draws everything else. */
+
+:root {
+  --sky: #7fb4d4;
+  --sky-deep: #2d4f68;
+  --ink: #14232e;
+  --paper: #f4f1e8;
+  --edge: rgba(20, 35, 46, 0.16);
+  --accent: #d9622b;
+  /* the Android chooser's own colours, from res/values/colors.xml */
+  --android-bg: #f7f7f7;
+  --android-bar: #e8e8e8;
+  --android-card: #fff;
+  --android-line: #808080;
+  --android-pressed: #efefef;
+  --android-radio: #808080;
+  --android-accent: #009688;
+  --lift: #4fa65b;
+  --sink: #c0392b;
+  color-scheme: light dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--sky) 0%, #cfe4ef 55%, #e8e2cf 100%);
+}
+
+body[data-screen='loading'] #menu,
+body[data-screen='loading'] #game,
+body[data-screen='menu'] #game,
+body[data-screen='playing'] #menu { display: none; }
+
+/* ---------- menu ----------
+
+   Follows the Android chooser (activity_choose.xml + my_grid_item.xml):
+   a title bar, gliders as radios down the left, tasks in a two-column grid.
+   Colours and sizes are the ones in res/values - #808080 card borders,
+   #efefef pressed, 20dp radio text, 16dp task titles, 14sp descriptions.  */
+
+#menu {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--android-bg);
+}
+
+.bar {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 0.55rem 0.9rem;
+  background: var(--android-bar);
+  border-bottom: 1px solid var(--android-line);
+}
+
+.bar-icon { border-radius: 50%; }
+
+.bar h1 {
+  flex: 1;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+.bar-more {
+  padding: 0.5rem 0.75rem;
+  background: none;
+  border: none;
+  border-radius: 6px;
+}
+
+.bar-more svg { display: block; fill: var(--ink); opacity: 0.7; }
+.bar-more:hover { background: rgba(0, 0, 0, 0.07); }
+
+.chooser {
+  display: grid;
+  flex: 1;
+  grid-template-columns: auto 1fr;
+  gap: 1.5rem;
+  align-content: center;
+  align-items: center;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+/* --- gliders: radios, vertically centred --- */
+
+.gliders {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px;
+}
+
+.glider {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 5px 8px;
+  font-size: 1.25rem;      /* 20dp */
+  font-weight: 700;
+  color: var(--ink);
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+}
+
+.glider:hover { background: rgba(0, 0, 0, 0.05); }
+
+.glider .dot {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--android-radio);
+  border-radius: 50%;
+}
+
+.glider[aria-checked='true'] .dot {
+  border-color: var(--android-accent);
+  box-shadow: inset 0 0 0 4px var(--android-bg), inset 0 0 0 20px var(--android-accent);
+}
+
+/* --- tasks: the 2-column GridView --- */
+
+.tasks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  align-content: center;
+  max-width: 62rem;
+}
+
+.task {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 5px 10px;
+  text-align: left;
+  background: var(--android-card);
+  border: 1px solid var(--android-line);
+  border-radius: 0;
+}
+
+.task strong {
+  font-size: 1rem;         /* 16dp */
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.task span {
+  font-size: 0.875rem;     /* 14sp */
+  color: var(--ink);
+  opacity: 0.85;
+}
+
+.task:hover { background: var(--android-pressed); }
+.task:active { background: var(--android-pressed); border-color: var(--ink); }
+
+/* --- footer --- */
+
+footer {
+  padding: 0.6rem 1rem 0.9rem;
+  font-size: 0.8rem;
+  text-align: center;
+  opacity: 0.6;
+}
+
+footer p { margin: 0.2rem 0; }
+footer a { color: inherit; }
+
+.keys kbd {
+  padding: 0.05rem 0.3rem;
+  margin: 0 0.05rem;
+  font: inherit;
+  font-size: 0.85em;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--edge);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+}
+
+@media (max-width: 720px) {
+  .chooser { grid-template-columns: 1fr; align-content: start; }
+  .gliders { flex-direction: row; flex-wrap: wrap; padding: 0; }
+}
+
+/* ---------- game ---------- */
+
+#game { position: fixed; inset: 0; }
+
+#gl {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+#hud {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  /* viewport-fit=cover puts the page under the notch and the gesture bar, so
+     every edge-anchored thing has to pay the inset back. */
+  padding: calc(0.9rem + env(safe-area-inset-top)) calc(0.9rem + env(safe-area-inset-right))
+    0.9rem calc(0.9rem + env(safe-area-inset-left));
+  pointer-events: none;
+}
+
+.hud-left, .hud-right {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.hud-vario { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
+
+.hud-vario-track {
+  position: relative;
+  width: 12px;
+  height: 140px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+}
+
+.hud-vario-track::after {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 1px;
+  content: '';
+  background: var(--edge);
+}
+
+.hud-vario-fill {
+  position: absolute;
+  right: 1px;
+  left: 1px;
+  background: var(--lift);
+  border-radius: 3px;
+}
+
+.hud-vario-fill.sinking { background: var(--sink); }
+
+.hud-vario-label,
+.hud-fps {
+  padding: 0.15rem 0.4rem;
+  font-variant-numeric: tabular-nums;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 5px;
+}
+
+.hud-info {
+  padding: 0.3rem 0.6rem;
+  font-variant-numeric: tabular-nums;
+  /* Was 60% white, which over the pale ground left grey text on grey. */
+  color: #fff;
+  background: rgba(20, 35, 46, 0.72);
+  border-radius: 7px;
+}
+
+.hud-compass {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--edge);
+  border-radius: 50%;
+}
+
+.hud-needle {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  margin-left: -5px;
+  border-right: 5px solid transparent;
+  border-bottom: 19px solid var(--accent);
+  border-left: 5px solid transparent;
+  transform-origin: 50% 19px;
+}
+
+.hud-centre { justify-self: center; max-width: min(24rem, 60vw); }
+
+.hud-info {
+  overflow: hidden;
+  font-size: 0.9rem;
+  text-align: center;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Android hides this on a double tap; here one tap is enough, since nothing
+   else on the overlay wants the gesture. */
+.hud-info.collapsed {
+  max-height: 1.5em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.hud-fps {
+  position: absolute;
+  right: 0.9rem;
+  bottom: 0.9rem;
+  font-size: 0.8rem;
+}
+
+#messages {
+  position: absolute;
+  bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: center;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.message {
+  padding: 0.35rem 0.8rem;
+  color: #fff;
+  background: rgba(20, 35, 46, 0.82);
+  border-radius: 999px;
+  animation: rise 240ms ease-out;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+/* One row across the foot of the screen rather than a centred block that
+   wrapped to three rows on a phone and put Quit on the gesture bar. */
+#game-actions {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem calc(0.9rem + env(safe-area-inset-right))
+    calc(0.5rem + env(safe-area-inset-bottom)) calc(0.9rem + env(safe-area-inset-left));
+}
+
+#cameras {
+  display: flex;
+  flex-shrink: 1;
+  gap: 0.4rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+#cameras::-webkit-scrollbar { display: none; }
+#game-actions > button { flex-shrink: 0; }
+
+#game-actions button {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* Anything driven by a finger gets a real target; 30px was too small to hit
+   while the glider is moving. */
+@media (pointer: coarse) {
+  #game-actions button { min-height: 44px; padding-inline: 0.85rem; }
+  #game-actions { gap: 0.3rem; }
+  .hud-info { font-size: 0.8rem; }
+}
+
+/* ---------- controls screen ----------
+
+   A port of android/res/layout/controls.xml: columns weighted 2:3:2, the
+   middle one split 2:3:2 down, which is exactly where
+   GliderUser.handleTouch changes what a touch means. Drawing it is the only
+   thing that makes those bands discoverable.  */
+
+#controls-help {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  /* gray_transparent (#B0808080 in res/values/colors.xml) - Android hex is
+     ARGB, CSS is RGBA, so copying it verbatim tints the scene red. */
+  background: rgba(128, 128, 128, 0.69);
+}
+
+#controls-help[hidden] { display: none; }
+
+.ch-col { display: flex; flex-direction: column; }
+.ch-side { flex: 2; }
+.ch-middle { flex: 3; }
+.ch-cell { display: flex; flex: 2; }
+.ch-hint { flex: 3; }
+
+.ch-side,
+.ch-box {
+  border: 1px solid rgba(255, 255, 255, 0.75); /* textviewback's stroke */
+}
+
+.ch-col > span,
+.ch-cell > span {
+  display: block;
+  width: 100%;
+  align-self: center;
+  color: var(--ink);
+  text-align: center;
+}
+
+.ch-side > span,
+.ch-box > span { font-size: clamp(1.1rem, 3.4vw, 1.6rem); }
+.ch-hint > span { font-size: clamp(0.8rem, 2vw, 1rem); line-height: 1.7; }
+.ch-keys { font-weight: 400; opacity: 0.8; }
+
+/* The keyboard line is noise on a phone, and the sevenths are all that matter
+   there. */
+@media (pointer: coarse) {
+  .ch-keys { display: none; }
+}
+
+/* ---------- rotate prompt ----------
+
+   Only for touch devices held upright: a narrow desktop window is still
+   perfectly playable, so width alone must not trigger this. */
+
+#rotate { display: none; }
+
+@media (orientation: portrait) and (pointer: coarse) {
+  body[data-screen='playing'] #rotate {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+    background: var(--android-bg);
+  }
+}
+
+.rotate-card { max-width: 18rem; text-align: center; }
+.rotate-card p { margin: 1rem 0 0; font-size: 1.05rem; }
+
+.rotate-card svg {
+  overflow: visible;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Turn the phone itself rather than the whole drawing: rotating a box reads
+   as "rotate this" without needing an arrow to explain it. */
+.rotate-phone {
+  transform-origin: 24px 24px;
+  animation: tip 2.6s ease-in-out infinite;
+}
+
+@keyframes tip {
+  0%, 40% { transform: rotate(0deg); }
+  60%, 100% { transform: rotate(-90deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotate-phone { animation: none; transform: rotate(-90deg); }
+}
+
+/* ---------- dialogs ---------- */
+
+dialog {
+  max-width: 34rem;
+  padding: 1.4rem;
+  color: inherit;
+  background: var(--paper);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+}
+
+dialog::backdrop { background: rgba(20, 35, 46, 0.45); }
+dialog h2 { margin-top: 0; font-size: 1.1rem; text-transform: none; letter-spacing: 0; opacity: 1; }
+
+fieldset {
+  padding: 0.5rem 0.9rem 0.9rem;
+  margin: 0 0 0.9rem;
+  border: 1px solid var(--edge);
+  border-radius: 9px;
+}
+
+legend {
+  padding-inline: 0.35rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.setting {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+}
+
+.setting input[type='number'] { width: 4.5rem; }
+.setting input, .setting select { font: inherit; }
+
+.dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.note { margin-bottom: 0; font-size: 0.82rem; opacity: 0.6; }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e8eef2;
+    --paper: #1c2730;
+    --edge: rgba(232, 238, 242, 0.18);
+    --sky-deep: #a8cde2;
+  }
+
+  body { background: linear-gradient(180deg, #1a2b38 0%, #223442 55%, #2a3a34 100%); }
+  :root {
+    --android-bg: #1b242c;
+    --android-bar: #232f38;
+    --android-card: #253039;
+    --android-line: #5c6b76;
+    --android-pressed: #2e3b45;
+    --android-radio: #8b9aa5;
+  }
+  .card, button, kbd, .hud-vario-label, .hud-info, .hud-fps, .hud-compass, .hud-vario-track {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .card:hover, button:hover { background: rgba(255, 255, 255, 0.14); }
+  .card[aria-pressed='true'] { background: rgba(217, 98, 43, 0.18); }
+}

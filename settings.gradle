@@ -5,10 +5,33 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+// Lets Gradle fetch a JDK matching gradle/gradle-daemon-jvm.properties when the
+// machine has none, so the build does not depend on what the developer happens
+// to have installed.
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
 dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
     }
 }
-rootProject.name = 'FlightClubSource'
+rootProject.name = 'FlightClub'
+
+// The portable engine and the web build need no Android SDK.
+include ':core'
+include ':web'
+
+// The Android app does. Including it without an SDK fails configuration for
+// every module, so only wire it in when an SDK is actually present.
+if (System.getenv('ANDROID_HOME') || System.getenv('ANDROID_SDK_ROOT') || file('local.properties').exists()) {
+    include ':android'
+} else {
+    gradle.projectsLoaded {
+        logger.lifecycle(
+            "NOTE: ':android' is not in this build - no Android SDK found.\n" +
+            "      Set ANDROID_HOME or create local.properties to build the app.")
+    }
+}
