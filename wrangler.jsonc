@@ -13,6 +13,10 @@
     "not_found_handling": "single-page-application"
   },
 
+  // Cloudflare manages the DNS record for this; the zone has to be on the
+  // same account as the Worker.
+  "routes": [{ "pattern": "flightclub.clementallen.com", "custom_domain": true }],
+
   "observability": { "enabled": true }
 
   // When multiplayer lands, the game server becomes a Durable Object:
