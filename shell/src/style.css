@@ -7,6 +7,14 @@
   --paper: #f4f1e8;
   --edge: rgba(20, 35, 46, 0.16);
   --accent: #d9622b;
+  /* the Android chooser's own colours, from res/values/colors.xml */
+  --android-bg: #f7f7f7;
+  --android-bar: #e8e8e8;
+  --android-card: #fff;
+  --android-line: #808080;
+  --android-pressed: #efefef;
+  --android-radio: #808080;
+  --android-accent: #009688;
   --lift: #4fa65b;
   --sink: #c0392b;
   color-scheme: light dark;
@@ -30,125 +38,160 @@ body[data-screen='loading'] #game,
 body[data-screen='menu'] #game,
 body[data-screen='playing'] #menu { display: none; }
 
-/* ---------- menu ---------- */
+/* ---------- menu ----------
+
+   Follows the Android chooser (activity_choose.xml + my_grid_item.xml):
+   a title bar, gliders as radios down the left, tasks in a two-column grid.
+   Colours and sizes are the ones in res/values - #808080 card borders,
+   #efefef pressed, 20dp radio text, 16dp task titles, 14sp descriptions.  */
 
 #menu {
-  max-width: 60rem;
-  margin: 0 auto;
-  padding: clamp(1.5rem, 4vw, 3rem) 1.25rem 3rem;
-}
-
-h1 {
-  margin: 0;
-  font-size: clamp(2.2rem, 6vw, 3.4rem);
-  letter-spacing: -0.02em;
-  color: var(--sky-deep);
-}
-
-.tagline {
-  max-width: 42rem;
-  margin: 0.5rem 0 0;
-  font-size: 1.05rem;
-  opacity: 0.8;
-}
-
-#menu section { margin-top: 2rem; }
-
-h2 {
-  margin: 0 0 0.75rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  opacity: 0.65;
-}
-
-.cards {
-  display: grid;
-  gap: 0.6rem;
-  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
-}
-
-.cards-wide { grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
-
-.card {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.7rem 0.85rem;
-  font: inherit;
-  text-align: left;
-  color: inherit;
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid var(--edge);
-  border-radius: 9px;
-  transition: background 120ms, border-color 120ms, transform 120ms;
+  height: 100%;
+  background: var(--android-bg);
 }
 
-.card span { font-size: 0.85rem; opacity: 0.7; }
-.card:hover { background: #fff; transform: translateY(-1px); }
-
-.card[aria-pressed='true'] {
-  background: #fff;
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-
-.menu-actions {
+.bar {
   display: flex;
-  gap: 0.6rem;
-  margin-top: 2rem;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 0.55rem 0.9rem;
+  background: var(--android-bar);
+  border-bottom: 1px solid var(--android-line);
 }
 
-button {
-  padding: 0.55rem 1.1rem;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid var(--edge);
-  border-radius: 8px;
-}
+.bar-icon { border-radius: 50%; }
 
-button:hover { background: #fff; }
-
-button.primary {
-  font-weight: 600;
-  color: #fff;
-  background: var(--accent);
-  border-color: transparent;
-}
-
-button.primary:hover { filter: brightness(1.07); }
-
-#fly { padding-inline: 2.2rem; }
-
-.keys ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 1.4rem;
-  padding: 0;
+.bar h1 {
+  flex: 1;
   margin: 0;
-  font-size: 0.9rem;
-  list-style: none;
-  opacity: 0.75;
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink);
 }
 
-kbd {
-  padding: 0.05rem 0.35rem;
+.bar-more {
+  padding: 0.5rem 0.75rem;
+  background: none;
+  border: none;
+  border-radius: 6px;
+}
+
+.bar-more svg { display: block; fill: var(--ink); opacity: 0.7; }
+.bar-more:hover { background: rgba(0, 0, 0, 0.07); }
+
+.chooser {
+  display: grid;
+  flex: 1;
+  grid-template-columns: auto 1fr;
+  gap: 1.5rem;
+  align-content: center;
+  align-items: center;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+/* --- gliders: radios, vertically centred --- */
+
+.gliders {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px;
+}
+
+.glider {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 5px 8px;
+  font-size: 1.25rem;      /* 20dp */
+  font-weight: 700;
+  color: var(--ink);
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+}
+
+.glider:hover { background: rgba(0, 0, 0, 0.05); }
+
+.glider .dot {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--android-radio);
+  border-radius: 50%;
+}
+
+.glider[aria-checked='true'] .dot {
+  border-color: var(--android-accent);
+  box-shadow: inset 0 0 0 4px var(--android-bg), inset 0 0 0 20px var(--android-accent);
+}
+
+/* --- tasks: the 2-column GridView --- */
+
+.tasks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  align-content: center;
+  max-width: 62rem;
+}
+
+.task {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 5px 10px;
+  text-align: left;
+  background: var(--android-card);
+  border: 1px solid var(--android-line);
+  border-radius: 0;
+}
+
+.task strong {
+  font-size: 1rem;         /* 16dp */
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.task span {
+  font-size: 0.875rem;     /* 14sp */
+  color: var(--ink);
+  opacity: 0.85;
+}
+
+.task:hover { background: var(--android-pressed); }
+.task:active { background: var(--android-pressed); border-color: var(--ink); }
+
+/* --- footer --- */
+
+footer {
+  padding: 0.6rem 1rem 0.9rem;
+  font-size: 0.8rem;
+  text-align: center;
+  opacity: 0.6;
+}
+
+footer p { margin: 0.2rem 0; }
+footer a { color: inherit; }
+
+.keys kbd {
+  padding: 0.05rem 0.3rem;
+  margin: 0 0.05rem;
   font: inherit;
   font-size: 0.85em;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.8);
   border: 1px solid var(--edge);
   border-bottom-width: 2px;
   border-radius: 4px;
 }
 
-footer {
-  margin-top: 3rem;
-  font-size: 0.85rem;
-  opacity: 0.55;
+@media (max-width: 720px) {
+  .chooser { grid-template-columns: 1fr; align-content: start; }
+  .gliders { flex-direction: row; flex-wrap: wrap; padding: 0; }
 }
 
 /* ---------- game ---------- */
@@ -352,6 +395,14 @@ legend {
   }
 
   body { background: linear-gradient(180deg, #1a2b38 0%, #223442 55%, #2a3a34 100%); }
+  :root {
+    --android-bg: #1b242c;
+    --android-bar: #232f38;
+    --android-card: #253039;
+    --android-line: #5c6b76;
+    --android-pressed: #2e3b45;
+    --android-radio: #8b9aa5;
+  }
   .card, button, kbd, .hud-vario-label, .hud-info, .hud-fps, .hud-compass, .hud-vario-track {
     background: rgba(255, 255, 255, 0.08);
   }

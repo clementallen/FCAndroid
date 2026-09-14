@@ -588,7 +588,7 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 		if (control_type == 1)
 			mGravity.pause();
 		if (modelViewerThin != null && ((XCModelViewer) modelViewerThin).clock != null) {
-			((XCModelViewer) modelViewerThin).clock.paused = true;
+			((XCModelViewer) modelViewerThin).xcModel.setPaused(true);
 			try {
 				if (((XCModelViewer) modelViewerThin).xcModel.gliderManager.gliderUser.racing)
 					wasPaused = true;
@@ -609,7 +609,7 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 			mGravity.resume();
 		soundPool.autoResume();
 		if (modelViewerThin != null && ((XCModelViewer) modelViewerThin).clock != null)
-			((XCModelViewer) modelViewerThin).clock.paused = false;
+			((XCModelViewer) modelViewerThin).xcModel.setPaused(false);
 	};
 
 	@Override

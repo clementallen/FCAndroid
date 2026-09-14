@@ -12,43 +12,33 @@
   </head>
   <body data-screen="loading">
     <main id="menu">
-      <header>
-        <h1>Flight Club</h1>
-        <p class="tagline">
-          Cross-country soaring. Find lift, climb to cloudbase, glide to the next thermal,
-          get round the course before the day dies.
-        </p>
+      <header class="bar">
+        <img class="bar-icon" src="/favicon.svg" alt="" width="28" height="28" />
+        <h1>Choose</h1>
+        <button id="open-settings" class="bar-more" aria-label="Settings" title="Settings">
+          <svg width="4" height="18" viewBox="0 0 4 18" aria-hidden="true">
+            <circle cx="2" cy="2" r="2" /><circle cx="2" cy="9" r="2" /><circle cx="2" cy="16" r="2" />
+          </svg>
+        </button>
       </header>
 
-      <section>
-        <h2>Task</h2>
-        <div id="tasks" class="cards"></div>
-      </section>
-
-      <section>
-        <h2>Glider</h2>
-        <div id="gliders" class="cards cards-wide"></div>
-      </section>
-
-      <div class="menu-actions">
-        <button id="fly" class="primary">Fly</button>
-        <button id="open-settings">Settings</button>
+      <div class="chooser">
+        <div id="gliders" class="gliders" role="radiogroup" aria-label="Glider"></div>
+        <div id="tasks" class="tasks"></div>
       </div>
 
-      <section class="keys">
-        <h2>Controls</h2>
-        <ul>
-          <li><kbd>&larr;</kbd> <kbd>&rarr;</kbd> turn</li>
-          <li><kbd>&uarr;</kbd> <kbd>&darr;</kbd> speed to fly</li>
-          <li><kbd>1</kbd>&ndash;<kbd>5</kbd> camera</li>
-          <li><kbd>Space</kbd> pause</li>
-          <li>drag to orbit, scroll to zoom</li>
-        </ul>
-      </section>
-
       <footer>
+        <p class="keys">
+          <kbd>&larr;</kbd><kbd>&rarr;</kbd> turn &middot;
+          <kbd>&uarr;</kbd><kbd>&darr;</kbd> speed &middot;
+          <kbd>1</kbd>&ndash;<kbd>5</kbd> camera &middot;
+          <kbd>Space</kbd> pause &middot; drag to orbit, scroll to zoom
+        </p>
         <p>
-          Originally a Java applet by Dan Burton, 2001&ndash;2003. GPL.
+          Originally a Java applet by
+          <a href="http://www.glider-pilot.co.uk/Flight%20club/hg.htm"
+             target="_blank" rel="noopener noreferrer">Dan Burton</a>,
+          2001&ndash;2003. GPL.
         </p>
       </footer>
     </main>

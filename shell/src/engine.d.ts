@@ -54,6 +54,9 @@ declare module '@engine' {
     zoomIn(): void;
     zoomOut(): void;
     togglePause(): void;
+
+    /** Freezes or resumes the world. Resuming re-pegs model time. */
+    setPaused(paused: boolean): void;
     isPaused(): boolean;
 
     /** Must be called from a user gesture. */

@@ -45,6 +45,10 @@ function showDialog(title: string, text: string): void {
   const dlg = el<HTMLDialogElement>('#dialog');
   el('#dialog-title').textContent = title;
   el('#dialog-body').innerHTML = text.replace(/\n/g, '<br>');
+  // Nothing should move behind the task briefing. The engine raises this while
+  // loading the task, so the gaggle would otherwise be airborne and gone by the
+  // time the player has read it.
+  fc?.setPaused(true);
   dlg.showModal();
 }
 
@@ -87,9 +91,15 @@ function startGame(taskId: string, pilotType: number): void {
     return;
   }
 
-  // Audio needs a gesture, and clicking Fly was one.
+  // Audio needs a gesture, and clicking the task was one.
   fc.resumeAudio();
   fc.launch(pilotType);
+
+  // The engine raises the task briefing while loading the task, but
+  // XCModel.startPlay() clears any pause right afterwards - so the pause has
+  // to be re-applied here, once launching is done, or the gaggle flies away
+  // behind the briefing.
+  if (el<HTMLDialogElement>('#dialog').open) fc.setPaused(true);
 
   buildCameraBar();
 
@@ -138,38 +148,37 @@ function buildCameraBar(): void {
 }
 
 function buildMenu(): void {
-  const taskList = el('#tasks');
-  let chosenTask = TASKS[1]!.id;
-  let chosenGlider = 0;
-
-  TASKS.forEach((t) => {
-    const b = document.createElement('button');
-    b.className = 'card';
-    b.innerHTML = `<strong>${t.title}</strong><span>${t.desc}</span>`;
-    b.setAttribute('aria-pressed', String(t.id === chosenTask));
-    b.addEventListener('click', () => {
-      chosenTask = t.id;
-      for (const other of taskList.children) other.setAttribute('aria-pressed', 'false');
-      b.setAttribute('aria-pressed', 'true');
-    });
-    taskList.append(b);
-  });
+  // Mirrors the Android chooser: gliders as radios down the left, tasks as a
+  // two-column grid, and tapping a task starts it straight away - there is no
+  // separate Fly button there.
+  let chosenGlider = GLIDERS[0]!.type;
 
   const gliderList = el('#gliders');
-  GLIDERS.forEach((g) => {
+  GLIDERS.forEach((g, i) => {
     const b = document.createElement('button');
-    b.className = 'card';
-    b.innerHTML = `<strong>${g.name}</strong><span>${g.desc}</span>`;
-    b.setAttribute('aria-pressed', String(g.type === chosenGlider));
+    b.className = 'glider';
+    b.type = 'button';
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', String(i === 0));
+    b.title = g.desc;
+    b.innerHTML = `<span class="dot"></span>${g.name}`;
     b.addEventListener('click', () => {
       chosenGlider = g.type;
-      for (const other of gliderList.children) other.setAttribute('aria-pressed', 'false');
-      b.setAttribute('aria-pressed', 'true');
+      for (const other of gliderList.children) other.setAttribute('aria-checked', 'false');
+      b.setAttribute('aria-checked', 'true');
     });
     gliderList.append(b);
   });
 
-  el('#fly').addEventListener('click', () => startGame(chosenTask, chosenGlider));
+  const taskList = el('#tasks');
+  TASKS.forEach((t) => {
+    const b = document.createElement('button');
+    b.className = 'task';
+    b.type = 'button';
+    b.innerHTML = `<strong>${t.title}</strong><span>${t.desc}</span>`;
+    b.addEventListener('click', () => startGame(t.id, chosenGlider));
+    taskList.append(b);
+  });
 }
 
 function buildSettings(): void {
@@ -253,7 +262,10 @@ function main(): void {
   el('#close-settings').addEventListener('click', () =>
     el<HTMLDialogElement>('#settings').close(),
   );
-  el('#dialog-ok').addEventListener('click', () => el<HTMLDialogElement>('#dialog').close());
+  el('#dialog-ok').addEventListener('click', () => {
+    el<HTMLDialogElement>('#dialog').close();
+    fc?.setPaused(false);
+  });
 
   window.addEventListener('resize', () => fitCanvas(el<HTMLCanvasElement>('#gl')));
 

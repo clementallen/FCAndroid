@@ -268,8 +268,22 @@ public class FlightClub {
 
 	@JSExport
 	public void togglePause() {
-		if (started) {
-			modelViewer.clock.paused = !modelViewer.clock.paused;
+		setPaused(!isPaused());
+	}
+
+	/**
+	 * Freezes or resumes the world.
+	 *
+	 * Silences the looping sounds and re-pegs model time on resume; see
+	 * XCModel.setPaused, which Android's pause button goes through too.
+	 */
+	@JSExport
+	public void setPaused(boolean paused) {
+		// Not gated on `started`: the engine raises the task briefing from
+		// inside start(), before that flag is set, and freezing the world is
+		// precisely what has to happen at that moment.
+		if (modelViewer != null && modelViewer.xcModel != null) {
+			modelViewer.xcModel.setPaused(paused);
 		}
 	}
 

@@ -135,7 +135,34 @@ public class XCModel extends Model {
 	}
 
 	public void togglePause() {
-		modelViewer.clock.paused = !modelViewer.clock.paused;
+		setPaused(!modelViewer.clock.paused);
+	}
+
+	/**
+	 * Freezes or resumes the world, and the noise it makes.
+	 *
+	 * Pausing silences the looping sounds. The director is driven from
+	 * GliderUser.tick, which a paused clock stops calling, so without this the
+	 * wind would simply keep blowing over a frozen world. Resuming needs no
+	 * counterpart: clearing the director's state makes the next tick start the
+	 * loops again as if the flight had just begun.
+	 *
+	 * Resuming also re-pegs model time, which runs off the wall clock and keeps
+	 * advancing while paused - otherwise a long pause would jump cloud ages and
+	 * trigger cycles forward the moment play resumed.
+	 */
+	public void setPaused(boolean paused) {
+		if (paused == modelViewer.clock.paused) {
+			return;
+		}
+		if (paused) {
+			if (gliderManager != null && gliderManager.gliderUser != null) {
+				gliderManager.gliderUser.sound.stop();
+			}
+		} else {
+			modelViewer.clock.reanchor();
+		}
+		modelViewer.clock.paused = paused;
 	}
 
 	private boolean userModeSet = false;
