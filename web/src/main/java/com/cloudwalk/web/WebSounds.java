@@ -34,6 +34,20 @@ public final class WebSounds {
 	private GainNode master;
 	private final AudioBuffer[] buffers = new AudioBuffer[FILES.length];
 	private final AudioBufferSourceNode[] live = new AudioBufferSourceNode[FILES.length];
+
+	/**
+	 * Plays that arrived before their sound had finished downloading.
+	 *
+	 * The engine starts the wind on the first frame of the flight, which is
+	 * the same moment the mp3s begin fetching - and it only asks once, because
+	 * the loop is meant to run until landing. Dropping that request left the
+	 * flight silent for its whole duration. So hold the request and honour it
+	 * when the buffer lands.
+	 */
+	private final boolean[] pending = new boolean[FILES.length];
+	private final float[] pendingPitch = new float[FILES.length];
+	private final int[] pendingLoop = new int[FILES.length];
+	private final float[] pendingVolume = new float[FILES.length];
 	private final String base;
 	private float volume = 1f;
 	private boolean muted = false;
@@ -92,6 +106,10 @@ public final class WebSounds {
 				ctx.decodeAudioData(raw, new DecodeSuccessCallback() {
 					public void onSuccess(AudioBuffer decoded) {
 						buffers[index] = decoded;
+						if (pending[index]) {
+							pending[index] = false;
+							play(pendingPitch[index], index, pendingLoop[index], pendingVolume[index]);
+						}
 					}
 				});
 			}
@@ -107,7 +125,16 @@ public final class WebSounds {
 	 *               master
 	 */
 	public void play(float pitch, int index, int loop, float volume) {
-		if (ctx == null || muted || index < 0 || index >= buffers.length || buffers[index] == null) {
+		if (ctx == null || muted || index < 0 || index >= buffers.length) {
+			return;
+		}
+		if (buffers[index] == null) {
+			// Still downloading - remember it and start when it arrives.
+			stop(index);
+			pending[index] = true;
+			pendingPitch[index] = pitch;
+			pendingLoop[index] = loop;
+			pendingVolume[index] = volume;
 			return;
 		}
 		stop(index);
@@ -125,11 +152,16 @@ public final class WebSounds {
 
 	/** Re-pitches a sound that is already playing - the wind and sink tones. */
 	public void setRate(int index, float rate) {
-		if (index < 0 || index >= live.length) {
+		if (index < 0 || index >= live.length || rate <= 0) {
+			return;
+		}
+		if (pending[index]) {
+			// Not started yet; make sure it starts at the current pitch.
+			pendingPitch[index] = rate;
 			return;
 		}
 		AudioBufferSourceNode src = live[index];
-		if (src != null && rate > 0) {
+		if (src != null) {
 			src.getPlaybackRate().setValue(rate);
 		}
 	}
@@ -138,6 +170,7 @@ public final class WebSounds {
 		if (index < 0 || index >= live.length) {
 			return;
 		}
+		pending[index] = false;
 		AudioBufferSourceNode src = live[index];
 		if (src != null) {
 			try {
