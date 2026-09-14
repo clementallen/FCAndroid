@@ -11,6 +11,7 @@ package com.cloudwalk.startup;
 
 import java.io.InputStream;
 
+import com.cloudwalk.platform.NetLink;
 import com.cloudwalk.platform.Prefs;
 
 /**
@@ -36,6 +37,13 @@ public interface ModelEnv {
 
 	/** "host:port" of the game server, or null for a solo game. */
 	String getHostPort();
+
+	/**
+	 * Opens a link to the game server, delivering each received line to
+	 * {@code listener}. Android carries this over a TCP socket, a browser over
+	 * a WebSocket. Returns null if this platform has no multiplayer transport.
+	 */
+	NetLink openNetLink(String hostPort, NetLink.Listener listener);
 
 	int[] getTypeNums();
 

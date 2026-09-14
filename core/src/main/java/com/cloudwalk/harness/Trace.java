@@ -4,6 +4,7 @@ import com.cloudwalk.client.Glider;
 import com.cloudwalk.client.XCModelViewer;
 import com.cloudwalk.framework3d.ModelView;
 import com.cloudwalk.framework3d.Obj3dStatic;
+import com.cloudwalk.platform.Log;
 import com.cloudwalk.platform.Now;
 import com.cloudwalk.platform.Rnd;
 
@@ -28,6 +29,12 @@ public final class Trace {
 		Rnd.pin(20000L, 12345L);
 		Now.Virtual vclock = new Now.Virtual(0L);
 		Now.setSource(vclock);
+		// Silence the engine: task descriptions are logged over several lines,
+		// so a trace is only cleanly comparable if nothing else is writing.
+		Log.setSink(new Log.Sink() {
+			public void write(int level, String tag, String msg, Throwable t) {
+			}
+		});
 		try {
 			// The static world geometry is global mutable state, reset by the
 			// platform before each game. Do the same here so repeated runs in
@@ -66,6 +73,7 @@ public final class Trace {
 		} finally {
 			Rnd.unpin();
 			Now.reset();
+			Log.setSink(null);
 		}
 	}
 

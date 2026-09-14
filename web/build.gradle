@@ -3,9 +3,11 @@ plugins {
     id 'org.teavm' version '0.15.0'
 }
 
+// TeaVM 0.15 requires Java 17+ to run. :core stays at 8 for the Android app;
+// TeaVM happily consumes the older bytecode.
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 dependencies {
@@ -19,9 +21,59 @@ teavm {
     js {
         addedToWebApp = true
         mainClass = 'com.cloudwalk.web.WebMain'
+        // strict=true (32-bit rounding on every float op) was measured and
+        // changes nothing here - the JVM/JS divergence is Math.pow, not
+        // arithmetic - while adding ~180KB. Left off.
+        strict = false
         obfuscated = false
         sourceMap = true
         outputDir = file("$buildDir/generated/teavm/js")
         targetFileName = 'flightclub.js'
+    }
+}
+
+/**
+ * Runs the simulation on the JVM and again compiled to JavaScript, and
+ * compares where the glider went.
+ *
+ * This is the port's regression test. It is not an exact diff: the JVM and V8
+ * disagree by about an ulp on Math.pow, Cloud.getLift raises base proximity to
+ * the 1000th power, and altitude feeds back into that - so the digits drift
+ * even though the flight does not. The tolerance is far tighter than anything
+ * a player could see, and far tighter than the 0.1 at which the multiplayer
+ * protocol resyncs a position.
+ */
+def traceCases = [
+    [task: 't001', pilot: 0, golden: 't001-pg.trace'],
+    [task: 't002', pilot: 1, golden: 't002-hg.trace'],
+]
+
+tasks.register('checkTrace') {
+    group = 'verification'
+    description = 'Compares the JavaScript build against the golden JVM traces.'
+    dependsOn 'generateJavaScript'
+    doLast {
+        def js = file("${layout.buildDirectory.get()}/generated/teavm/js/js/flightclub.js")
+        if (!js.exists()) {
+            throw new GradleException("no TeaVM output at ${js}")
+        }
+        def runner = new File(temporaryDir, 'run.cjs')
+        runner.text = """const fc = require(${groovy.json.JsonOutput.toJson(js.absolutePath)});
+fc.main(process.argv.slice(2), e => { if (e) { console.error(e); process.exit(1); } });
+"""
+        traceCases.each { c ->
+            def out = new File(temporaryDir, "${c.task}-${c.pilot}.trace")
+            out.withOutputStream { os ->
+                exec {
+                    commandLine 'node', runner.absolutePath, c.task, "${c.pilot}", '2000', '25'
+                    standardOutput = os
+                }
+            }
+            def golden = rootProject.file("core/src/test/golden/${c.golden}")
+            exec {
+                commandLine 'python3', rootProject.file('web/tools/cmptrace.py').absolutePath,
+                        golden.absolutePath, out.absolutePath, '0.05'
+            }
+        }
     }
 }

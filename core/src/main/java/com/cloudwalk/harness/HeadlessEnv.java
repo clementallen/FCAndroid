@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 
+import com.cloudwalk.platform.NetLink;
 import com.cloudwalk.platform.Prefs;
 import com.cloudwalk.startup.ModelEnv;
 
@@ -61,6 +62,11 @@ public class HeadlessEnv implements ModelEnv {
 
 	/** Null means a solo game, which is the only thing the harness runs. */
 	public String getHostPort() {
+		return null;
+	}
+
+	/** The harness runs solo games only. */
+	public NetLink openNetLink(String hostPort, NetLink.Listener listener) {
 		return null;
 	}
 

@@ -12,6 +12,7 @@ package com.cloudwalk.client;
 import java.io.IOException;
 
 import com.cloudwalk.platform.Log;
+import com.cloudwalk.platform.NetLink;
 
 import com.cloudwalk.framework3d.ModelView;
 import com.cloudwalk.framework3d.ModelViewer;
@@ -35,8 +36,13 @@ public class XCModelViewer extends ModelViewer {
 	/** Connects to game server. */
 	void connectToServer() {
 		try {
-			xcNet = new XCNet(this);
-			xcNet.start();
+			XCNet net = new XCNet(this);
+			NetLink link = modelEnv.openNetLink(modelEnv.getHostPort(), net);
+			if (link == null) {
+				throw new UnsupportedOperationException("no multiplayer transport on this platform");
+			}
+			net.attach(link);
+			xcNet = net;
 		} catch (Exception e) {
 			Log.e("FC", "Error connecting to game server ", e);
 			// degrade to single player mode

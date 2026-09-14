@@ -12,3 +12,8 @@
 
 # macOS
 .DS_Store
+
+# Gradle module builds
+core/build/
+web/build/
+android/build/
