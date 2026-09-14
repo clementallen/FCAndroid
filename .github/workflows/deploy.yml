@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [master, claude/wonderful-ptolemy-fq8xpn]
+    branches: [master]
   workflow_dispatch:
 
 # One deploy at a time. A queued run is superseded by a newer one rather
