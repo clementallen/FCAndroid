@@ -1,5 +1,7 @@
 package com.cloudwalk.web;
 
+import org.teavm.jso.JSExportClasses;
+
 import com.cloudwalk.harness.Trace;
 
 /**
@@ -12,9 +14,14 @@ import com.cloudwalk.harness.Trace;
  * comes out the same on both sides. If the two traces match, everything except
  * rendering and input has already made it to the browser.
  */
+@JSExportClasses(FlightClub.class)
 public final class WebMain {
 
 	public static void main(String[] args) {
+		if (args.length == 0) {
+			// Nothing to do: the shell imports the FlightClub export directly.
+			return;
+		}
 		String task = args.length > 0 ? args[0] : "t001";
 		int pilotType = args.length > 1 ? Integer.parseInt(args[1]) : 0;
 		int frames = args.length > 2 ? Integer.parseInt(args[2]) : 2000;

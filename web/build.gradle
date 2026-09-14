@@ -21,6 +21,11 @@ teavm {
     js {
         addedToWebApp = true
         mainClass = 'com.cloudwalk.web.WebMain'
+        // ES module, so Vite can import it like anything else
+        moduleType = org.teavm.gradle.api.JSModuleType.ES2015
+        // the facade is only reached from JavaScript, so reachability
+        // analysis would otherwise drop it
+        preservedClasses = ['com.cloudwalk.web.FlightClub']
         // strict=true (32-bit rounding on every float op) was measured and
         // changes nothing here - the JVM/JS divergence is Math.pow, not
         // arithmetic - while adding ~180KB. Left off.

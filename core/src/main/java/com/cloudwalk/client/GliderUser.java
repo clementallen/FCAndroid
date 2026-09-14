@@ -60,6 +60,24 @@ public class GliderUser extends GliderTask {
 		nextTurn = move;
 	}
 
+	/**
+	 * Steers the glider: -1 left, 0 straight, 1 right.
+	 *
+	 * The public way in for controls that are not a touch on a phone screen -
+	 * a keyboard, mostly. Mirrors what handleTouch does, including pulling the
+	 * camera onto the glider when the player starts turning, so the two input
+	 * routes behave the same.
+	 */
+	public void steer(int move) {
+		if (onGround) {
+			return;
+		}
+		setMove(move);
+		if (move != 0 && ((XCCameraMan) modelViewer.cameraMan).mode != XCCameraMan.USER) {
+			modelViewer.cameraMan.setSubject(this, true);
+		}
+	}
+
 	private void incMove(int move) {
 		nextTurn += move;
 		if (nextTurn > 1)
