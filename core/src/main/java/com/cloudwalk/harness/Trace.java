@@ -26,6 +26,17 @@ public final class Trace {
 	public static final int WARMUP = 50;
 
 	public static String run(AssetSource assets, String task, int pilotType, int frames, int sampleEvery) {
+		return run(new HeadlessEnv(assets, task, pilotType, new int[] { 1, 1, 1, 1 }),
+				task, pilotType, frames, sampleEvery, null);
+	}
+
+	/** Frame callback, so a caller can watch the flight as it runs. */
+	public interface Watcher {
+		void frame(int frame);
+	}
+
+	public static String run(HeadlessEnv env, String task, int pilotType, int frames, int sampleEvery,
+			Watcher watcher) {
 		Rnd.pin(20000L, 12345L);
 		Now.Virtual vclock = new Now.Virtual(0L);
 		Now.setSource(vclock);
@@ -46,7 +57,7 @@ public final class Trace {
 
 			XCModelViewer mv = new XCModelViewer(view);
 			view.modelViewer = mv;
-			mv.init(new HeadlessEnv(assets, task, pilotType, new int[] { 1, 1, 1, 1 }));
+			mv.init(env);
 			mv.start();
 
 			// start() leaves the model in demo mode, watching the AI gliders.
@@ -63,6 +74,9 @@ public final class Trace {
 			// depend on how fast the machine happened to be.
 			int frameMs = 1000 / 20;
 			for (int i = 0; i < frames; i++) {
+				if (watcher != null) {
+					watcher.frame(i);
+				}
 				long now = vclock.advance(frameMs);
 				mv.clock.pump(null, now);
 				if (i >= WARMUP && (i - WARMUP) % sampleEvery == 0) {

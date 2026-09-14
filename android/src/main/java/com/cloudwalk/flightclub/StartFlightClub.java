@@ -83,8 +83,6 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 	float volume = 0;
 	int[] soundIds;
 	int[] streamIDs;
-	boolean sinking = false;
-	float currentSpeed;
 	FlightClubSurfaceView surfaceView;
 	GestureDetector detector;
 	GravityListener mGravity;
@@ -93,7 +91,7 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 	int glider_color;
 	String playerName;
 
-	boolean finished = false, landed = false, flying = false;
+	boolean finished = false, landed = false;
 
 	XCGameServer server;
 	XCGameServerOnline serverOnline;
@@ -114,15 +112,8 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 					return;
 				}
 				GliderUser glider = ((XCModelViewer) modelViewerThin).xcModel.gliderManager.gliderUser;
-				if (flying == true && glider.getLanded()) {
-					flying = false;
-					sinking = false;
-					soundPool.stop(streamIDs[1]);
-					soundPool.play(soundIds[4], volume, volume, 1, 0, 1);
-				}
 				if (glider.finished && !finished && ((XCModelViewer) modelViewerThin).xcModel.task.type == Task.TIME) {
 					try {
-						soundPool.play(soundIds[5], volume, volume, 1, 0, 1);
 						int best_time = prefs.getInt("best_time0" + task + pilotType, 100000);
 						int current_time = (int) glider.timeFinished;
 						Log.i("FC StartFlightClub", "currenttime " + current_time + " " + best_time);
@@ -147,7 +138,6 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 					landed = true;
 				} else if (glider.finished && !finished && ((XCModelViewer) modelViewerThin).xcModel.task.type == Task.TIME_PRECISE) {
 					try {
-						soundPool.play(soundIds[5], volume, volume, 1, 0, 1);
 						int best_time = prefs.getInt("best_time0" + task + pilotType, 1000000);
 						int current_time = (int) (glider.timeFinished * 100);
 						Log.i("FC StartFlightClub", "currenttime " + current_time + " " + best_time);
@@ -170,36 +160,6 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 				((TextView) findViewById(R.id.info)).setText(Html.fromHtml(surfaceView.modelView.getInfoText()));
 				((SeekBar) findViewById(R.id.vario)).setProgress((int) (50 + ((XCModelViewer) modelViewerThin).xcModel.gliderManager.theGlider()
 						.getActualSink() / 0.37f * 50));
-				if (flying && glider.airv < 0 && !sinking && prefs.getBoolean("sink_tone", true)) {
-					Log.w("FC", "startsink");
-					streamIDs[7] = soundPool.play(soundIds[7], volume, volume, 1, -1, 1f + glider.airv * 3);
-					sinking = true;
-				} else if (flying && glider.airv >= 0) {
-					// Log.w("FC", "stopsink");
-					soundPool.stop(streamIDs[7]);
-					sinking = false;
-				}
-				if (flying && sinking) {
-					soundPool.setRate(streamIDs[7], 1f + glider.airv * 3);
-				}
-				if (flying == true && prefs.getBoolean("ambient_sound", true)) {
-					if (currentSpeed != glider.getSpeed()) {
-						soundPool.setRate(streamIDs[1], (float) Math.sqrt(glider.getSpeed() / 1.7));
-						currentSpeed = glider.getSpeed();
-					}
-					int rnd = (int) (Math.random() * 3000);
-					if (rnd == 0)
-						soundPool.play(soundIds[2], (float) (volume * Math.random()) * .05f, (float) (volume * Math.random()) * .05f, 1, 0, 1);
-					else if (rnd == 1)
-						soundPool.play(soundIds[3], (float) (volume * Math.random()) * .05f, (float) (volume * Math.random()) * .05f, 1, 0, 1);
-					else if (rnd == 2)
-						soundPool.play(soundIds[6], (float) (volume * Math.random()) * .05f, (float) (volume * Math.random()) * .05f, 1, 0, 1);
-
-				} else if (glider.racing && !glider.getLanded() && flying == false) {
-					flying = true;
-					if (prefs.getBoolean("ambient_sound", true))
-						streamIDs[1] = soundPool.play(soundIds[1], volume / 2, volume / 2, 1, -1, (float) Math.sqrt(glider.getSpeed() / 1.7));
-				}
 				Glider active_glider = ((XCModelViewer) modelViewerThin).xcModel.gliderManager.theGlider();
 				if (active_glider != null) {
 					float angle = (float) Math.toDegrees(Math.atan2(active_glider.v[0], active_glider.v[1]));
@@ -713,9 +673,18 @@ public class StartFlightClub extends Activity implements ModelEnv, OnTouchListen
 	private String lastAudio = "";
 
 	@Override
-	public void play(float sound, int index, int loop) {
-		// Log.w("FC", "Playing sound: "+sound);
-		streamIDs[index] = soundPool.play(soundIds[index], volume, volume, 1, loop, sound);
+	public void play(float pitch, int index, int loop, float volume) {
+		streamIDs[index] = soundPool.play(soundIds[index], volume, volume, 1, loop, pitch);
+	}
+
+	@Override
+	public void stopSound(int index) {
+		soundPool.stop(streamIDs[index]);
+	}
+
+	@Override
+	public void setSoundRate(int index, float rate) {
+		soundPool.setRate(streamIDs[index], rate);
 	}
 
 	@Override

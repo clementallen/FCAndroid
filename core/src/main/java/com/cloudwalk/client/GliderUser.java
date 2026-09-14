@@ -21,6 +21,7 @@ import com.cloudwalk.platform.Log;
  */
 public class GliderUser extends GliderTask {
 	Variometer vario;
+	SoundDirector sound;
 	int cameraMode = XCCameraMan.USER;
 
 	public GliderUser(XCModelViewer xcModelViewer, GliderType gliderType, int id, String playerName) {
@@ -28,6 +29,7 @@ public class GliderUser extends GliderTask {
 		this.playerName = playerName;
 		setColor();
 		vario = new Variometer(xcModelViewer, this);
+		sound = new SoundDirector(xcModelViewer, this);
 	}
 
 	public void setColor() {
@@ -44,11 +46,16 @@ public class GliderUser extends GliderTask {
 	}
 
 	public void destroyMe() {
+		sound.stop();
 		super.destroyMe();
 	}
 
 	public void tick(float t, float dt) {
 		super.tick(t, dt);
+
+		// Outside the !onGround guard: the director has to see the landing in
+		// order to cut the wind and play the thud.
+		sound.tick(t);
 
 		if (!onGround) {
 			vario.tick(t);

@@ -211,7 +211,6 @@ footer {
 .hud-vario-fill.sinking { background: var(--sink); }
 
 .hud-vario-label,
-.hud-stats,
 .hud-info,
 .hud-fps {
   padding: 0.15rem 0.4rem;
@@ -241,17 +240,6 @@ footer {
   border-left: 5px solid transparent;
   transform-origin: 50% 19px;
 }
-
-.hud-stats {
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: 0 0.4rem;
-  margin: 0;
-  font-size: 0.85rem;
-}
-
-.hud-stats dt { opacity: 0.6; }
-.hud-stats dd { margin: 0; text-align: right; }
 
 .hud-centre { justify-self: center; }
 .hud-info { font-size: 0.9rem; text-align: center; }
@@ -364,7 +352,7 @@ legend {
   }
 
   body { background: linear-gradient(180deg, #1a2b38 0%, #223442 55%, #2a3a34 100%); }
-  .card, button, kbd, .hud-vario-label, .hud-stats, .hud-info, .hud-fps, .hud-compass, .hud-vario-track {
+  .card, button, kbd, .hud-vario-label, .hud-info, .hud-fps, .hud-compass, .hud-vario-track {
     background: rgba(255, 255, 255, 0.08);
   }
   .card:hover, button:hover { background: rgba(255, 255, 255, 0.14); }

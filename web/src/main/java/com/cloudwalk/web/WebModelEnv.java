@@ -84,8 +84,16 @@ public final class WebModelEnv implements ModelEnv {
 		return typeNums;
 	}
 
-	public void play(float pitch, int index, int loop) {
-		sounds.play(pitch, index, loop);
+	public void play(float pitch, int index, int loop, float volume) {
+		sounds.play(pitch, index, loop, volume);
+	}
+
+	public void stopSound(int index) {
+		sounds.stop(index);
+	}
+
+	public void setSoundRate(int index, float rate) {
+		sounds.setRate(index, rate);
 	}
 
 	public Prefs getPrefs() {

@@ -4,9 +4,10 @@ import type { FlightClub } from '@engine';
  * The instrument overlay.
  *
  * On Android this was a TextView, a SeekBar for the variometer and a rotated
- * ImageView for the compass. Here it is DOM over the canvas, polled a few
- * times a second rather than every frame - the underlying model updates at
- * 5Hz anyway (XCModel.tick), so there is nothing to gain from going faster.
+ * ImageView for the compass - and nothing else, which is the whole of what
+ * this shows too. Here it is DOM over the canvas, polled a few times a second
+ * rather than every frame: the underlying model updates at 5Hz anyway
+ * (XCModel.tick), so there is nothing to gain from going faster.
  */
 
 const POLL_MS = 100;
@@ -28,11 +29,6 @@ export class Hud {
       <div class="hud-centre"><div class="hud-info"></div></div>
       <div class="hud-right">
         <div class="hud-compass" aria-label="Compass"><div class="hud-needle"></div></div>
-        <dl class="hud-stats">
-          <dt>Alt</dt><dd class="hud-alt">0</dd>
-          <dt>Spd</dt><dd class="hud-spd">0</dd>
-          <dt>Dist</dt><dd class="hud-dist">0</dd>
-        </dl>
       </div>
       <div class="hud-fps"></div>`;
   }
@@ -48,9 +44,6 @@ export class Hud {
     const varioLabel = this.q<HTMLElement>('.hud-vario-label');
     const needle = this.q<HTMLElement>('.hud-needle');
     const info = this.q<HTMLElement>('.hud-info');
-    const alt = this.q<HTMLElement>('.hud-alt');
-    const spd = this.q<HTMLElement>('.hud-spd');
-    const dist = this.q<HTMLElement>('.hud-dist');
     const fps = this.q<HTMLElement>('.hud-fps');
     fps.hidden = !showFps;
 
@@ -64,10 +57,9 @@ export class Hud {
       varioLabel.textContent = vario.toFixed(1);
 
       needle.style.transform = `rotate(${this.fc.getHeading()}deg)`;
+      // The engine's own status line already reports height, speed and
+      // distance flown (GliderTask.getStatusMsg), which is all Android shows.
       info.innerHTML = this.fc.getInfoText();
-      alt.textContent = `${Math.round(this.fc.getAltitude() * 1000)}m`;
-      spd.textContent = this.fc.getSpeed().toFixed(2);
-      dist.textContent = `${this.fc.getDistanceFlown().toFixed(1)}km`;
       if (showFps) fps.textContent = `${this.fc.getFrameRate()} fps`;
     }, POLL_MS);
   }

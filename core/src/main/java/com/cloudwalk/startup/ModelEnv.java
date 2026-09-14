@@ -47,8 +47,25 @@ public interface ModelEnv {
 
 	int[] getTypeNums();
 
-	/** Plays sound {@code index} at {@code pitch}; loop -1 repeats forever. */
-	void play(float pitch, int index, int loop);
+	/**
+	 * Plays sound {@code index}.
+	 *
+	 * @param pitch  playback rate; the engine uses it to encode lift strength,
+	 *               airspeed and sink rate, so it is not decoration
+	 * @param loop   -1 repeats forever, 0 plays once
+	 * @param volume 0..1; the wind sits at half and the bird calls far below
+	 *               that, so they belong behind the rest of the mix
+	 */
+	void play(float pitch, int index, int loop, float volume);
+
+	/** Stops a looping sound. Harmless if it is not playing. */
+	void stopSound(int index);
+
+	/**
+	 * Re-pitches a sound that is already playing, without restarting it - the
+	 * wind and sink tones track airspeed and lift continuously.
+	 */
+	void setSoundRate(int index, float rate);
 
 	Prefs getPrefs();
 

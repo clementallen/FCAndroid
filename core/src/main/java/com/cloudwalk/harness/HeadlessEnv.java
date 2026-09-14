@@ -74,7 +74,13 @@ public class HeadlessEnv implements ModelEnv {
 		return typeNums;
 	}
 
-	public void play(float pitch, int index, int loop) {
+	public void play(float pitch, int index, int loop, float volume) {
+	}
+
+	public void stopSound(int index) {
+	}
+
+	public void setSoundRate(int index, float rate) {
 	}
 
 	public Prefs getPrefs() {

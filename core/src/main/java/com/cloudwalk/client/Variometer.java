@@ -53,7 +53,7 @@ public class Variometer {
 	private void beep() {
 		float lift = glider.getActualSink();
 		if (lift > 0) {
-			xcModelViewer.modelEnv.play(0.8f+lift/liftMax*1.2f, 0, 0);
+			xcModelViewer.modelEnv.play(0.8f + lift / liftMax * 1.2f, SoundDirector.BEEP, 0, 1f);
 		} 
 	}
 

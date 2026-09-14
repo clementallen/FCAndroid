@@ -369,9 +369,17 @@ public class Obj3dStatic {
 		for (Triangle triangle : triangles) {
 			verticesFB.put(triangle.verticesData);
 			if (triangle.shadow) {
-				normal[0] = 0;
-				normal[1] = -1;
-				normal[2] = 0;
+				// All three vertices, not just the first: `normal` is one
+				// float[9] scratch buffer reused across triangles, and
+				// addShadow appends a shadow straight after its caster - so
+				// leaving slots 3..8 alone gave two of the three vertices the
+				// caster's sun-facing normal. Those vertices then lit at full
+				// brightness and the shadow came out near-white with a
+				// gradient across it, instead of the flat mid grey the
+				// downward normal is here to produce.
+				normal[0] = normal[3] = normal[6] = 0;
+				normal[1] = normal[4] = normal[7] = -1;
+				normal[2] = normal[5] = normal[8] = 0;
 			} else {
 				float va0 = triangle.verticesData[3] - triangle.verticesData[0];
 				float va1 = triangle.verticesData[4] - triangle.verticesData[1];

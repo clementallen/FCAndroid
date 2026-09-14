@@ -100,10 +100,13 @@ public final class WebSounds {
 	}
 
 	/**
-	 * @param pitch playback rate, as SoundPool used it
-	 * @param loop  -1 to repeat forever, as SoundPool used it
+	 * @param pitch  playback rate, as SoundPool used it
+	 * @param loop   -1 to repeat forever, as SoundPool used it
+	 * @param volume 0..1, per sound - the wind and the birds sit well below
+	 *               the rest, so they need their own gain rather than the
+	 *               master
 	 */
-	public void play(float pitch, int index, int loop) {
+	public void play(float pitch, int index, int loop, float volume) {
 		if (ctx == null || muted || index < 0 || index >= buffers.length || buffers[index] == null) {
 			return;
 		}
@@ -112,7 +115,10 @@ public final class WebSounds {
 		src.setBuffer(buffers[index]);
 		src.setLoop(loop == -1);
 		src.getPlaybackRate().setValue(pitch <= 0 ? 1f : pitch);
-		src.connect(master);
+		GainNode gain = ctx.createGain();
+		gain.getGain().setValue(volume < 0 ? 0 : volume);
+		src.connect(gain);
+		gain.connect(master);
 		src.start();
 		live[index] = src;
 	}

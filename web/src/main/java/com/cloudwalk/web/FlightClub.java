@@ -1,5 +1,6 @@
 package com.cloudwalk.web;
 
+import org.teavm.jso.JSBody;
 import org.teavm.jso.JSExport;
 import org.teavm.jso.JSFunctor;
 import org.teavm.jso.JSObject;
@@ -53,6 +54,22 @@ public class FlightClub {
 	private MessageHandler onMessage;
 	private DialogHandler onDialog;
 
+	/**
+	 * Context attributes with the alpha channel switched off.
+	 *
+	 * A canvas defaults to alpha:true and premultipliedAlpha:true, so any
+	 * fragment the shader emits with alpha below 1 gets composited against the
+	 * page behind the canvas - and since the shader writes straight, not
+	 * premultiplied, colour, the browser under-weights it and the page shows
+	 * through. COLOR_SHADOW is argb(128, 220, 220, 220), the one translucent
+	 * colour in the engine, which is exactly why ground shadows washed out to
+	 * white here and not on Android: a GLSurfaceView has no alpha channel to
+	 * composite with, so it simply discards that alpha. This makes the browser
+	 * behave the same way.
+	 */
+	@JSBody(script = "return { alpha: false };")
+	private static native JSObject opaqueContext();
+
 	@JSExport
 	public FlightClub() {
 	}
@@ -80,9 +97,9 @@ public class FlightClub {
 			throw new RuntimeException("no canvas with id " + canvasId);
 		}
 
-		WebGLRenderingContext ctx = (WebGLRenderingContext) canvas.getContext("webgl");
+		WebGLRenderingContext ctx = (WebGLRenderingContext) canvas.getContext("webgl", opaqueContext());
 		if (ctx == null) {
-			ctx = (WebGLRenderingContext) canvas.getContext("experimental-webgl");
+			ctx = (WebGLRenderingContext) canvas.getContext("experimental-webgl", opaqueContext());
 		}
 		if (ctx == null) {
 			throw new RuntimeException("this browser has no WebGL");

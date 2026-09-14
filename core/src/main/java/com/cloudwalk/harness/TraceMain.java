@@ -14,13 +14,20 @@ import java.io.InputStream;
 public final class TraceMain {
 
 	public static void main(String[] args) throws IOException {
-		final File dir = new File(args.length > 0 ? args[0] : "assets");
+		File dir = new File(args.length > 0 ? args[0] : "assets");
 		String task = args.length > 1 ? args[1] : "t001";
 		int pilotType = args.length > 2 ? Integer.parseInt(args[2]) : 0;
 		int frames = args.length > 3 ? Integer.parseInt(args[3]) : 600;
 		int every = args.length > 4 ? Integer.parseInt(args[4]) : 50;
 
-		AssetSource assets = new AssetSource() {
+		AssetSource assets = diskAssets(dir);
+
+		System.out.print(Trace.run(assets, task, pilotType, frames, every));
+	}
+
+	/** Reads bundled data files straight off disk. */
+	public static AssetSource diskAssets(final File dir) {
+		return new AssetSource() {
 			public String read(String name) {
 				File f = new File(dir, name);
 				if (!f.exists()) {
@@ -47,8 +54,6 @@ public final class TraceMain {
 				}
 			}
 		};
-
-		System.out.print(Trace.run(assets, task, pilotType, frames, every));
 	}
 
 	private TraceMain() {
