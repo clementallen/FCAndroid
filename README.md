@@ -29,8 +29,17 @@ which is what keeps them honest about behaving the same.
     npm run build    # -> dist/
     npm run deploy   # -> Cloudflare
 
-`npm run engine` alone runs the Gradle TeaVM build. Requires JDK 17+ (TeaVM's
-compiler needs it; the engine itself is Java 8).
+`npm run engine` alone runs the Gradle TeaVM build.
+
+**You do not need a particular JDK installed.** The Gradle daemon is pinned to
+Java 21 by `gradle/gradle-daemon-jvm.properties`, and if the machine has no
+Java 21, Gradle downloads one. Whatever your default `java` is - including one
+newer than Gradle supports - the build uses 21 regardless.
+
+(This is not fussiness. Gradle has an upper JDK bound as well as a lower one:
+on a machine defaulting to Java 26, Gradle 8's Groovy fails to compile the
+build scripts at all, with `Unsupported class file major version 70`. Pinning
+the daemon is what makes that a non-event.)
 
 Vite's hot reload watches `shell/` only - it has no idea the engine came from
 Java. `dev` compiles it once at startup, so **after editing anything under

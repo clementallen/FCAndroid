@@ -5,6 +5,13 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+// Lets Gradle fetch a JDK matching gradle/gradle-daemon-jvm.properties when the
+// machine has none, so the build does not depend on what the developer happens
+// to have installed.
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
 dependencyResolutionManagement {
     repositories {
         google()

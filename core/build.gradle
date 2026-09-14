@@ -2,15 +2,20 @@ plugins {
     id 'java-library'
 }
 
-// Java 8 bytecode: consumed by the Android app (minSdk 21) and by TeaVM.
+// Pin the compiler, so what this module produces does not depend on whichever
+// JDK the developer happens to have as their default.
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    // -source/-target 8 is deprecated in JDK 21 but still supported; quiet it.
+    // Java 8 bytecode: consumed by the Android app (minSdk 21) and by TeaVM.
+    // `release` rather than source/targetCompatibility because it also checks
+    // the API surface, which matters for a module that has to run on both.
+    options.release = 8
     options.compilerArgs << '-Xlint:-options'
 }
 

@@ -6,8 +6,14 @@ plugins {
 // TeaVM 0.15 requires Java 17+ to run. :core stays at 8 for the Android app;
 // TeaVM happily consumes the older bytecode.
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
 }
 
 dependencies {
@@ -53,32 +59,68 @@ def traceCases = [
     [task: 't002', pilot: 1, golden: 't002-hg.trace'],
 ]
 
-tasks.register('checkTrace') {
-    group = 'verification'
-    description = 'Compares the JavaScript build against the golden JVM traces.'
-    dependsOn 'generateJavaScript'
-    doLast {
-        def js = file("${layout.buildDirectory.get()}/generated/teavm/js/js/flightclub.js")
-        if (!js.exists()) {
-            throw new GradleException("no TeaVM output at ${js}")
-        }
-        def runner = new File(temporaryDir, 'run.cjs')
+abstract class CheckTrace extends DefaultTask {
+
+    /**
+     * Project.exec is gone in Gradle 9; an injected ExecOperations is the
+     * supported way to run something from a task, and works on both.
+     */
+    @javax.inject.Inject
+    abstract ExecOperations getExecOps()
+
+    @InputFile
+    abstract RegularFileProperty getEngine()
+
+    @InputFiles
+    abstract ConfigurableFileCollection getGolden()
+
+    @Input
+    abstract ListProperty<Map<String, Object>> getCases()
+
+    @InputFile
+    abstract RegularFileProperty getComparer()
+
+    @OutputDirectory
+    abstract DirectoryProperty getOutputDir()
+
+    @TaskAction
+    void run() {
+        def js = engine.get().asFile
+        def dir = outputDir.get().asFile
+        dir.mkdirs()
+
+        def runner = new File(dir, 'run.cjs')
         runner.text = """const fc = require(${groovy.json.JsonOutput.toJson(js.absolutePath)});
 fc.main(process.argv.slice(2), e => { if (e) { console.error(e); process.exit(1); } });
 """
-        traceCases.each { c ->
-            def out = new File(temporaryDir, "${c.task}-${c.pilot}.trace")
+
+        cases.get().each { c ->
+            def out = new File(dir, "${c.task}-${c.pilot}.trace")
             out.withOutputStream { os ->
-                exec {
+                execOps.exec {
                     commandLine 'node', runner.absolutePath, c.task, "${c.pilot}", '2000', '25'
                     standardOutput = os
                 }
             }
-            def golden = rootProject.file("core/src/test/golden/${c.golden}")
-            exec {
-                commandLine 'python3', rootProject.file('web/tools/cmptrace.py').absolutePath,
-                        golden.absolutePath, out.absolutePath, '0.05'
+            def goldenFile = golden.files.find { it.name == c.golden }
+            if (goldenFile == null) {
+                throw new GradleException("no golden trace named ${c.golden}")
+            }
+            execOps.exec {
+                commandLine 'python3', comparer.get().asFile.absolutePath,
+                        goldenFile.absolutePath, out.absolutePath, '0.05'
             }
         }
     }
+}
+
+tasks.register('checkTrace', CheckTrace) {
+    group = 'verification'
+    description = 'Compares the JavaScript build against the golden JVM traces.'
+    dependsOn 'generateJavaScript'
+    engine = layout.buildDirectory.file('generated/teavm/js/js/flightclub.js')
+    golden.from(rootProject.fileTree('core/src/test/golden') { include '*.trace' })
+    cases = traceCases
+    comparer = rootProject.layout.projectDirectory.file('web/tools/cmptrace.py')
+    outputDir = layout.buildDirectory.dir('checkTrace')
 }
