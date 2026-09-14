@@ -12,8 +12,8 @@ package com.cloudwalk.client;
 import java.io.IOException;
 import java.io.StreamTokenizer;
 
-import android.graphics.Color;
-import android.util.Log;
+import com.cloudwalk.platform.Color;
+import com.cloudwalk.platform.Log;
 
 import com.cloudwalk.framework3d.FileFormatException;
 import com.cloudwalk.framework3d.Obj3d;

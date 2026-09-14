@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.io.StreamTokenizer;
 import java.util.Random;
 
-import android.util.Log;
+import com.cloudwalk.platform.Log;
 
 /**
  * This class implements static methods for 3d geometry.
@@ -400,4 +400,17 @@ public class Tools3d {
 		return Integer.valueOf(s).intValue();
 	}
 
+
+	/**
+	 * A cheap deterministic hash of a 2d point into [0, 1). Used to jitter
+	 * terrain features so they do not sit on an obvious grid, and it has to
+	 * stay deterministic: every peer in a network game must place them
+	 * identically. Moved here from the Android Tools class - it is pure maths
+	 * and the engine is its only caller.
+	 */
+	public static float get01Value4(float x, float y) {
+		float a = (float) Math.sqrt((x + 17) / (y + 17));
+		// some deep enough decimals
+		return (float) ((a * 1000) - Math.floor(a * 1000));
+	}
 }

@@ -23,11 +23,10 @@ import java.util.Random;
 
 import net.e175.klaus.solarpositioning.AzimuthZenithAngle;
 import net.e175.klaus.solarpositioning.PSA;
-import android.graphics.Color;
-import android.util.Log;
+import com.cloudwalk.platform.Color;
+import com.cloudwalk.platform.Log;
 
 import com.cloudwalk.data.Building;
-import com.cloudwalk.flightclub.Tools;
 import com.cloudwalk.framework3d.CameraSubject;
 import com.cloudwalk.framework3d.FileFormatException;
 import com.cloudwalk.framework3d.Tools3d;
@@ -209,8 +208,8 @@ public class Task implements CameraSubject {
 		for (int i = 1; i < 20; i++) {
 			HEXAGON = (float) (CLOUDBASE * (7 + Math.pow(i, 1.46f)));
 			flatLand2(x_ += HEXAGON * 0.833f, y_, 3, CLOUDBASE);
-			// r1[i - 1] = new float[] { x_ + HEXAGON / 2 + (Tools.get01Value4(x_, y_) - 0.5f) * HEXAGON / 2,
-			// y_ + HEXAGON / 2 + (Tools.get01Value4(x_, y_) - 0.5f) * HEXAGON / 2, 0 };
+			// r1[i - 1] = new float[] { x_ + HEXAGON / 2 + (Tools3d.get01Value4(x_, y_) - 0.5f) * HEXAGON / 2,
+			// y_ + HEXAGON / 2 + (Tools3d.get01Value4(x_, y_) - 0.5f) * HEXAGON / 2, 0 };
 		}
 
 		float[] xs = { CLOUDBASE * 7, x_ + HEXAGON };
@@ -401,8 +400,8 @@ public class Task implements CameraSubject {
 						y_ + r.nextFloat() * HEXAGON, 0, Color.rgb(200, 240, 200), Color.rgb(240, 240, 200));
 			}
 
-			// r1[i - 1] = new float[] { x_ + HEXAGON / 2 + (Tools.get01Value4(x_, y_) - 0.5f) * HEXAGON / 2,
-			// + (Tools.get01Value4(x_, y_) - 0.5f) * HEXAGON / 2, 0 };
+			// r1[i - 1] = new float[] { x_ + HEXAGON / 2 + (Tools3d.get01Value4(x_, y_) - 0.5f) * HEXAGON / 2,
+			// + (Tools3d.get01Value4(x_, y_) - 0.5f) * HEXAGON / 2, 0 };
 		}
 
 		float[] xs = { 3 * 10, x_ + HEXAGON };
@@ -644,50 +643,50 @@ public class Task implements CameraSubject {
 		float x, y, xr, yr;
 		x = x0 + HEXAGON / 2;
 		y = y0 + HEXAGON / 2;
-		xr = x + (Tools.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
-		yr = y + (Tools.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
+		xr = x + (Tools3d.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
+		yr = y + (Tools3d.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
 		trigger = new Trigger(xcModelViewer, xr, yr, version, cloudHeight);
 		triggers[next++] = trigger;
 
 		x = x0 + HEXAGON / 2;
 		y = y0 + dh;
-		xr = x + (Tools.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
-		yr = y + (Tools.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
+		xr = x + (Tools3d.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
+		yr = y + (Tools3d.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
 		trigger = new Trigger(xcModelViewer, xr, yr, version, cloudHeight);
 		triggers[next++] = trigger;
 
 		x = x0 + HEXAGON / 2;
 		y = y1 - dh;
-		xr = x + (Tools.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
-		yr = y + (Tools.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
+		xr = x + (Tools3d.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
+		yr = y + (Tools3d.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
 		trigger = new Trigger(xcModelViewer, xr, yr, version, cloudHeight);
 		triggers[next++] = trigger;
 
 		x = x0 + dh;
 		y = y0 + 2 * dh;
-		xr = x + (Tools.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
-		yr = y + (Tools.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
+		xr = x + (Tools3d.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
+		yr = y + (Tools3d.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
 		trigger = new Trigger(xcModelViewer, xr, yr, version, cloudHeight);
 		triggers[next++] = trigger;
 
 		x = x0 + dh;
 		y = y1 - 2 * dh;
-		xr = x + (Tools.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
-		yr = y + (Tools.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
+		xr = x + (Tools3d.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
+		yr = y + (Tools3d.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
 		trigger = new Trigger(xcModelViewer, xr, yr, version, cloudHeight);
 		triggers[next++] = trigger;
 
 		x = x1 - dh;
 		y = y0 + 2 * dh;
-		xr = x + (Tools.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
-		yr = y + (Tools.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
+		xr = x + (Tools3d.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
+		yr = y + (Tools3d.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
 		trigger = new Trigger(xcModelViewer, xr, yr, version, cloudHeight);
 		triggers[next++] = trigger;
 
 		x = x1 - dh;
 		y = y1 - 2 * dh;
-		xr = x + (Tools.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
-		yr = y + (Tools.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
+		xr = x + (Tools3d.get01Value4(x, y) - 0.5f) * HEXAGON / 10f;
+		yr = y + (Tools3d.get01Value4(y, x) - 0.5f) * HEXAGON / 10f;
 		trigger = new Trigger(xcModelViewer, xr, yr, version, cloudHeight);
 		triggers[next++] = trigger;
 	}

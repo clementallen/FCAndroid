@@ -11,7 +11,7 @@ package com.cloudwalk.framework3d;
 
 import java.io.*;
 
-import android.graphics.Color;
+import com.cloudwalk.platform.Color;
 
 /**
  * This class extends Obj3d to include a local frame of reference. We may rotate the local frame by specifying a unit vector v and an angle of bank. We may move

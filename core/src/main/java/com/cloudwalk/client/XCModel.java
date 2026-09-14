@@ -12,11 +12,9 @@ package com.cloudwalk.client;
 import java.util.Arrays;
 import java.util.Comparator;
 
-import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
-import android.util.Log;
+import com.cloudwalk.platform.Prefs;
+import com.cloudwalk.platform.Log;
 
-import com.cloudwalk.flightclub.Tools;
 import com.cloudwalk.framework3d.Model;
 
 /**
@@ -26,8 +24,6 @@ public class XCModel extends Model {
 	XCModelViewer xcModelViewer;
 	public GliderManager gliderManager;
 	public Task task;
-	public Compass compass = null;
-	public DataSlider slider = null;
 
 	/**
 	 * An intermediate var gives us a casted reference to the camera man. I'm not sure if this is good style. What if the camera man object changes ? Then this
@@ -76,9 +72,9 @@ public class XCModel extends Model {
 				gliderManager.createAIs(1, 1, 1, 1);
 			}
 		}
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(xcModelViewer.modelEnv.getContext());
+		Prefs prefs = xcModelViewer.modelEnv.getPrefs();
 		if (prefs.getBoolean("show_task_info", true) && task.desc.length() > 0) {
-			Tools.showInfoDialog("Task info:", task.desc, xcModelViewer.modelEnv.getContext());
+			xcModelViewer.modelEnv.showDialog("Task info:", task.desc);
 		}
 
 	}
@@ -95,8 +91,8 @@ public class XCModel extends Model {
 			gliderManager.launchUser();
 			xcCameraMan.setMode(XCCameraMan.USER);
 
-			if (!doneInstruments) {
-				createInstruments();
+			if (!userModeSet) {
+				userModeSet = true;
 				mode = USER;
 			}
 		}
@@ -140,21 +136,7 @@ public class XCModel extends Model {
 		modelViewer.clock.paused = !modelViewer.clock.paused;
 	}
 
-	private boolean doneInstruments = false;
-
-	/**
-	 * Creates the compass and vario.
-	 */
-	private void createInstruments() {
-		int width = modelViewer.modelView.getWidth();
-		int height = modelViewer.modelView.getHeight();
-		float vmax = -2 * gliderManager.gliderUser.getMaxSink();
-		int size = width / 15;
-		compass = new Compass(modelViewer, size, width / 2 - size / 2, height - height / 40);
-		slider = new DataSlider(modelViewer, -vmax, vmax, size, width / 2 + size / 2, height - height / 40);
-		slider.label = "v";
-		doneInstruments = true;
-	}
+	private boolean userModeSet = false;
 
 	private float t_ = 0;
 	private static final float T_INTERVAL = 0.2f;
@@ -174,8 +156,6 @@ public class XCModel extends Model {
 
 		if (mode == USER) {
 			Glider g = gliderManager.gliderUser;
-			compass.setArrow(g.v[0], g.v[1]);
-			slider.setValue(g.getSink() + g.airv);
 			if (xcModelViewer.netFlag == true) {
 				GliderTask[] gliders = new GliderTask[gliderManager.numNet + 1];
 				int i = 0;
@@ -208,7 +188,7 @@ public class XCModel extends Model {
 		serverStatus();
 
 		// frame rate for when testing etc
-		if (PreferenceManager.getDefaultSharedPreferences(modelViewer.modelEnv.getContext()).getBoolean("fps", false)) {
+		if (modelViewer.modelEnv.getPrefs().getBoolean("fps", false)) {
 			String status = "FPS: " + modelViewer.clock.getFrameRate();//+ " TIME: "+modelViewer.clock.getTime(); // tmp
 			modelViewer.modelView.setText(status, 0);
 		}

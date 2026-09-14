@@ -9,7 +9,7 @@
  */
 package com.cloudwalk.client;
 
-import android.util.Log;
+import com.cloudwalk.platform.Log;
 
 /**
  * Managers a list of nodes for a task. A task is 'covered' using N nodes (cf mobile phone transmitters).

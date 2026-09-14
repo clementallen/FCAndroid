@@ -11,10 +11,8 @@ package com.cloudwalk.client;
 
 import java.io.IOException;
 
-import android.os.SystemClock;
-import android.util.Log;
+import com.cloudwalk.platform.Log;
 
-import com.cloudwalk.flightclub.Tools;
 import com.cloudwalk.framework3d.ModelView;
 import com.cloudwalk.framework3d.ModelViewer;
 
@@ -77,7 +75,7 @@ public class XCModelViewer extends ModelViewer {
 						connectToServer();
 						if (netFlag && xcNet == null) { // unable to connect !
 							netFlag = false;
-							Tools.showInfoDialog("ERROR", "Unable to connect to server.\nLoading default solo game.", modelEnv.getContext());
+							modelEnv.showDialog("ERROR", "Unable to connect to server.\nLoading default solo game.");
 							int[] typeNums = modelEnv.getTypeNums();
 							xcModel.loadTask(modelEnv.getTask(), modelEnv.getPilotType(), modelEnv.getTypeNums());
 							xcModel.gliderManager.createUser(modelEnv.getPilotType());

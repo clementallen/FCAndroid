@@ -1,7 +1,7 @@
 package com.cloudwalk.client;
 
-import android.graphics.Color;
-import android.util.Log;
+import com.cloudwalk.platform.Color;
+import com.cloudwalk.platform.Log;
 
 public class Bird extends GliderAI {
 	float last_decision = 0;

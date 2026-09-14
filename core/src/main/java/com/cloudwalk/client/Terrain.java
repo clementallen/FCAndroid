@@ -9,7 +9,7 @@
  */
 package com.cloudwalk.client;
 
-import android.graphics.Color;
+import com.cloudwalk.platform.Color;
 
 import com.cloudwalk.framework3d.*;
 

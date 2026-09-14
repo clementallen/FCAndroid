@@ -2,7 +2,7 @@ package com.cloudwalk.client;
 
 import java.util.Arrays;
 
-import android.util.Log;
+import com.cloudwalk.platform.Log;
 
 import com.cloudwalk.framework3d.CameraMan;
 import com.cloudwalk.framework3d.CameraSubject;

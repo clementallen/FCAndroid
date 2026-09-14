@@ -11,8 +11,7 @@ package com.cloudwalk.framework3d;
 
 import java.util.Vector;
 
-import android.os.SystemClock;
-import android.util.Log;
+import com.cloudwalk.platform.Log;
 
 import com.cloudwalk.client.Trigger;
 import com.cloudwalk.client.XCModelViewer;
@@ -22,9 +21,9 @@ import com.cloudwalk.client.XCModelViewer;
  * calls the tick method of each of its observers. The frame rate starts out as 25 but it may go up or down depending on how long it takes to execute all the
  * observer's tick methods. The clock keeps track of the *model* time.
  */
-public class Clock implements Runnable {
+public class Clock {
 
-	Thread ticker = null;
+	private boolean running = false;
 	int sleepTime;
 	Vector<ClockObserver> observers = new Vector<ClockObserver>();
 
@@ -32,7 +31,8 @@ public class Clock implements Runnable {
 	long tickCount = 0;
 
 	// for tuning the tick rate
-	private long idleTime = 0;
+	private long busyTime = 0;
+	private long nextFrameDueMs = 0;
 	private long blockStart;
 	private float modelTime;
 	private int frameRate;
@@ -50,6 +50,8 @@ public class Clock implements Runnable {
 																// time per
 																// second
 	private static final float MODEL_TIME_PER_TICK = MODEL_TIME_PER_SECOND / 1000f;
+	/** Stop trying to catch up on missed frames beyond this far behind. */
+	private static final long CATCHUP_LIMIT_MS = 250;
 	private static final float IDLE_PERCENT_MIN = 0.05f; // idle for at least 5%
 															// of the time - do
 															// not
@@ -73,12 +75,8 @@ public class Clock implements Runnable {
 	}
 
 	public void start() {
-		if (ticker == null) {
-			ticker = new Thread(this);
-			ticker.setPriority(Thread.MIN_PRIORITY);
-		}
-		ticker.start();
-		blockStart = currentTick = System.currentTimeMillis();
+		running = true;
+		blockStart = currentTick = nextFrameDueMs = System.currentTimeMillis();
 		modelTime = getTimeNow();
 		// for (int i = 0; i < observers.size(); i++) {
 		// ClockObserver observer = (ClockObserver) observers.elementAt(i);
@@ -91,10 +89,7 @@ public class Clock implements Runnable {
 	}
 
 	public void stop() {
-		if (ticker != null) {
-			ticker.interrupt();
-		}
-		ticker = null;
+		running = false;
 		modelTime = getTimeNow();
 		// for (int i = 0; i < observers.size(); i++) {
 		// ClockObserver observer = (ClockObserver) observers.elementAt(i);
@@ -106,69 +101,100 @@ public class Clock implements Runnable {
 
 	float t, _t = 0, dt;
 
-	public void oneFrame(ModelViewRenderer renderer) {
-		if (ticker != null) {
-			if (((XCModelViewer) observers.elementAt(0)).netFlag && !((XCModelViewer) observers.elementAt(0)).netTimeFlag) {
-				SystemClock.sleep(10);
-				return;
-			}
-			currentTick = System.currentTimeMillis();
-			tickCount++;
-
-			modelTime = t = getTimeNow();
-
-			if (_t == 0) {
-				dt = modelTimePerFrame;
-			} else {
-				dt = t - _t;
-			}
-
-			for (int i = 0; i < observers.size(); i++) {
-				// when paused still tick the modelviewer so
-				// we can change our POV and *un*pause !
-				if (i == 0 || !paused) {
-					ClockObserver c = (ClockObserver) observers.elementAt(i);
-					try {
-						if (paused) {
-							if (((ModelViewer) c).modelView.dragging) {
-								c.tick(modelTime, modelTimePerFrame);
-							}
-						} else
-							c.tick(modelTime, modelTimePerFrame);
-					} catch (Exception e) {
-						Log.e("FC", e.getMessage(), e);
-					}
-				}
-			}
-			renderer.drawEverything();
+	/**
+	 * Runs at most one frame, then says how long the caller should wait before
+	 * asking again.
+	 *
+	 * This used to block on Thread.sleep at the end of every frame, which a
+	 * browser cannot do - the render loop there is a callback, not a thread we
+	 * own. So pacing is a deadline the caller honours however it likes:
+	 * requestAnimationFrame simply calls back often and gets 0 returned when a
+	 * frame is due, while Android sleeps for the returned interval exactly as
+	 * it used to.
+	 *
+	 * @param nowMs wall clock, passed in so the caller and the clock agree
+	 * @return 0 if a frame ran, otherwise millis until the next one is due
+	 */
+	public long pump(ModelViewRenderer renderer, long nowMs) {
+		if (!running) {
+			return sleepTime;
 		}
 
-		long now = System.currentTimeMillis();
-		long timeLeft = sleepTime + currentTick - now;
+		// Waiting on the server's first TIME message - no model time yet, so
+		// there is nothing meaningful to simulate or draw.
+		XCModelViewer mv = (XCModelViewer) observers.elementAt(0);
+		if (mv.netFlag && !mv.netTimeFlag) {
+			return 10;
+		}
 
-		// idle for a bit
-		if (timeLeft > 0) {
-			idleTime += timeLeft;
-			try {
-				Thread.sleep(timeLeft);
-			} catch (InterruptedException e) {
-				ticker = null;
-				return;
+		long due = nextFrameDueMs - nowMs;
+		if (due > 0) {
+			return due;
+		}
+
+		currentTick = nowMs;
+		tickCount++;
+
+		modelTime = t = getTimeNow();
+
+		if (_t == 0) {
+			dt = modelTimePerFrame;
+		} else {
+			dt = t - _t;
+		}
+
+		for (int i = 0; i < observers.size(); i++) {
+			// when paused still tick the modelviewer so
+			// we can change our POV and *un*pause !
+			if (i == 0 || !paused) {
+				ClockObserver c = (ClockObserver) observers.elementAt(i);
+				try {
+					if (paused) {
+						if (((ModelViewer) c).modelView.dragging) {
+							c.tick(modelTime, modelTimePerFrame);
+						}
+					} else
+						c.tick(modelTime, modelTimePerFrame);
+				} catch (Exception e) {
+					Log.e("FC", e.getMessage(), e);
+				}
 			}
+		}
+		renderer.drawEverything();
+
+		long after = System.currentTimeMillis();
+		busyTime += after - nowMs;
+
+		// Advance the deadline rather than resetting it, so frame times do not
+		// drift. If we have fallen badly behind - a backgrounded tab, a long
+		// stall - give up on catching up and restart from now.
+		nextFrameDueMs += sleepTime;
+		if (nextFrameDueMs < after - CATCHUP_LIMIT_MS) {
+			nextFrameDueMs = after;
 		}
 
 		// check frame rate every so often
 		if (tickCount % BLOCK == 0) {
-			reviewRate(now);
+			reviewRate(after);
 		}
 		_t = t;
-
+		return 0;
 	}
 
-	public void run() {
-		Log.w("FC Clock", "" + this + " " + getTimeNow());
-
-		// ticker = null;
+	/**
+	 * Re-pegs model time to now without the smoothing synchTime does.
+	 *
+	 * Model time runs off the wall clock, but the render loop does not run at
+	 * all while a browser tab is hidden. Coming back after a minute away would
+	 * otherwise jump model time a minute forward while every object sits where
+	 * it was, and the world lurches. Call this when the page becomes visible
+	 * again.
+	 */
+	public void reanchor() {
+		modelTimeAtSync = modelTime;
+		realTimeAtSync = System.currentTimeMillis();
+		nextFrameDueMs = realTimeAtSync;
+		_t = 0;
 	}
 
 	/* Returns the current model time as defined by the run loop (discrete). */
@@ -210,7 +236,7 @@ public class Clock implements Runnable {
 	 */
 	void reviewRate(long t) {
 		long elapsed = t - blockStart;
-		float idlePercent = (float) idleTime / elapsed;
+		float idlePercent = elapsed > 0 ? 1f - (float) busyTime / elapsed : 1f;
 
 		if (idlePercent < IDLE_PERCENT_MIN && frameRate > 2) {
 			// working too hard so slow down
@@ -221,7 +247,7 @@ public class Clock implements Runnable {
 		}
 
 		// re init vars
-		idleTime = 0;
+		busyTime = 0;
 		blockStart = t;
 	}
 

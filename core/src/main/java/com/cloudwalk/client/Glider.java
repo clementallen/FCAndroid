@@ -11,7 +11,7 @@ package com.cloudwalk.client;
 
 import java.util.List;
 
-import android.util.Log;
+import com.cloudwalk.platform.Log;
 
 import com.cloudwalk.framework3d.Obj3dDir;
 import com.cloudwalk.framework3d.Tools3d;
@@ -389,11 +389,6 @@ public class Glider extends MovingBody {
 
 	float glideAngle(int iP) {
 		return polar.get(iP)[SPEED] / -polar.get(iP)[SINK];
-	}
-
-	// for debugging
-	protected void finalize() {
-		Log.w("FC", "Goodbye from glider(" + myID + ")");
 	}
 
 	public int getiP() {

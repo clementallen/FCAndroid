@@ -13,3 +13,36 @@ tasks.withType(JavaCompile).configureEach {
     // -source/-target 8 is deprecated in JDK 21 but still supported; quiet it.
     options.compilerArgs << '-Xlint:-options'
 }
+
+/**
+ * The point of this module is that it does not depend on any platform. That is
+ * easy to lose by accident - one stray `import android.util.Log` and the web
+ * build stops compiling for reasons that surface a long way from the cause.
+ * Fail the build at the source instead.
+ */
+def forbidden = ['android.', 'javax.microedition.']
+tasks.register('checkPortable') {
+    description = 'Fails if core has picked up a platform dependency.'
+    def srcDir = file('src/main/java')
+    inputs.dir srcDir
+    outputs.upToDateWhen { false }
+    doLast {
+        def offences = []
+        srcDir.eachFileRecurse { f ->
+            if (f.name.endsWith('.java')) {
+                f.eachLine { line, n ->
+                    forbidden.each { bad ->
+                        if (line ==~ /^\s*import\s+${java.util.regex.Pattern.quote(bad)}.*/) {
+                            offences << "${f.path}:${n}: ${line.trim()}"
+                        }
+                    }
+                }
+            }
+        }
+        if (offences) {
+            throw new GradleException(
+                ":core must stay platform-independent, but found:\n  " + offences.join("\n  "))
+        }
+    }
+}
+tasks.named('check') { dependsOn 'checkPortable' }

@@ -23,9 +23,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
-import android.graphics.Color;
-import android.opengl.GLES20;
-import android.util.Log;
+import com.cloudwalk.platform.Color;
+import com.cloudwalk.gl.GL;
+import com.cloudwalk.platform.Log;
 
 import com.cloudwalk.client.Task;
 
@@ -239,17 +239,17 @@ public class Obj3d implements CameraSubject {
 	 * 
 	 * @see ModelCanvas#paintModel
 	 */
-	public void draw(float[] mMVPMatrix, int mMVPMatrixHandle, int mPositionHandle, int mColorHandle, int mNormalHandle) {
+	public void draw(GL gl, int mPositionHandle, int mColorHandle, int mNormalHandle) {
 		if (polywires.size() == 0 && !visible())
 			return;
 		try {
-			drawTriangles(mMVPMatrix, mMVPMatrixHandle, mPositionHandle, mColorHandle, mNormalHandle);
+			drawTriangles(gl, mPositionHandle, mColorHandle, mNormalHandle);
 			// for (int i = 0; i < triangles.size(); i++) {
 			// triangles.get(i).drawTriangle(mMVPMatrix, mMVPMatrixHandle, mPositionHandle, mColorHandle, mNormalHandle);
 			// }
 
 			for (int i = 0; i < polywires.size(); i++) {
-				polywires.get(i).drawLines(mMVPMatrix, mMVPMatrixHandle, mPositionHandle, mColorHandle, mNormalHandle);
+				polywires.get(i).drawLines(gl, mPositionHandle, mColorHandle, mNormalHandle);
 			}
 		} catch (Exception e) {
 			Log.e("FC OBJ3D draw", e.getMessage(), e);
@@ -725,18 +725,18 @@ public class Obj3d implements CameraSubject {
 
 	public void fillVerticesData() {
 		// Log.i("FC", Arrays.toString(verticesData));
-		if (verticesFB == null || verticesFB.capacity() < 9 * triangles.size() * mBytesPerFloat)
+		if (verticesFB == null || verticesFB.capacity() < 9 * triangles.size())
 			verticesFB = ByteBuffer.allocateDirect(9 * triangles.size() * mBytesPerFloat).order(ByteOrder.nativeOrder()).asFloatBuffer();
 		else
-			verticesFB.position(0);
-		if (colorsFB == null || colorsFB.capacity() < 12 * triangles.size() * mBytesPerFloat)
+			verticesFB.clear();
+		if (colorsFB == null || colorsFB.capacity() < 12 * triangles.size())
 			colorsFB = ByteBuffer.allocateDirect(12 * triangles.size() * mBytesPerFloat).order(ByteOrder.nativeOrder()).asFloatBuffer();
 		else
-			colorsFB.position(0);
-		if (normalsFB == null || normalsFB.capacity() < normal.length * triangles.size() * mBytesPerFloat)
+			colorsFB.clear();
+		if (normalsFB == null || normalsFB.capacity() < normal.length * triangles.size())
 			normalsFB = ByteBuffer.allocateDirect(normal.length * triangles.size() * mBytesPerFloat).order(ByteOrder.nativeOrder()).asFloatBuffer();
 		else
-			normalsFB.position(0);
+			normalsFB.clear();
 		for (Triangle triangle : triangles) {
 			verticesFB.put(triangle.verticesData);
 			if (triangle.shadow) {
@@ -758,29 +758,88 @@ public class Obj3d implements CameraSubject {
 			colorsFB.put(triangle.colorsData);
 
 		}
+		verticesFB.flip();
+		colorsFB.flip();
+		normalsFB.flip();
 		dirty_object = false;
+		dirty_upload = true;
 		// Log.w("OBJ3D", Arrays.toString(n));
 	}
 
-	void drawTriangles(float[] mMVPMatrix, int mMVPMatrixHandle, int mPositionHandle, int mColorHandle, int mNormalHandle) {
+	private GL.Buf vbVertices, vbColors, vbNormals;
+	private int capVertices, capColors, capNormals;
+	private boolean dirty_upload = true;
+
+	/**
+	 * Uploads {@code data} into {@code buf}, growing the store only when it has
+	 * to. Returns the store's new capacity in floats.
+	 */
+	private static int upload(GL gl, GL.Buf buf, java.nio.FloatBuffer data, int capacity) {
+		gl.bindBuffer(GL.ARRAY_BUFFER, buf);
+		int need = data.remaining();
+		if (need > capacity) {
+			gl.bufferData(GL.ARRAY_BUFFER, data, GL.DYNAMIC_DRAW);
+			return need;
+		}
+		gl.bufferSubData(GL.ARRAY_BUFFER, 0, data);
+		return capacity;
+	}
+
+	void drawTriangles(GL gl, int mPositionHandle, int mColorHandle, int mNormalHandle) {
 		if (dirty_object)
 			fillVerticesData();
+
+		if (vbVertices == null) {
+			vbVertices = gl.createBuffer();
+			vbColors = gl.createBuffer();
+			vbNormals = gl.createBuffer();
+			dirty_upload = true;
+		}
+
+		if (dirty_upload) {
+			verticesFB.position(0);
+			colorsFB.position(0);
+			normalsFB.position(0);
+			capVertices = upload(gl, vbVertices, verticesFB, capVertices);
+			capColors = upload(gl, vbColors, colorsFB, capColors);
+			capNormals = upload(gl, vbNormals, normalsFB, capNormals);
+			dirty_upload = false;
+		}
+
 		// Pass in the position information
-		verticesFB.position(mPositionOffset);
-		GLES20.glVertexAttribPointer(mPositionHandle, mPositionDataSize, GLES20.GL_FLOAT, false, mStrideBytes, verticesFB);
-		GLES20.glEnableVertexAttribArray(mPositionHandle);
+		gl.bindBuffer(GL.ARRAY_BUFFER, vbVertices);
+		gl.vertexAttribPointer(mPositionHandle, mPositionDataSize, GL.FLOAT, false, mStrideBytes, 0);
+		gl.enableVertexAttribArray(mPositionHandle);
 
 		// Pass in the color information
-		colorsFB.position(mColorOffset);
-		GLES20.glVertexAttribPointer(mColorHandle, mColorDataSize, GLES20.GL_FLOAT, false, mStrideColorBytes, colorsFB);
-		GLES20.glEnableVertexAttribArray(mColorHandle);
+		gl.bindBuffer(GL.ARRAY_BUFFER, vbColors);
+		gl.vertexAttribPointer(mColorHandle, mColorDataSize, GL.FLOAT, false, mStrideColorBytes, 0);
+		gl.enableVertexAttribArray(mColorHandle);
 
 		// Pass in the normal information
-		normalsFB.position(mNormalOffset);
-		GLES20.glVertexAttribPointer(mNormalHandle, mNormalDataSize, GLES20.GL_FLOAT, false, mStrideNormalBytes, normalsFB);
-		GLES20.glEnableVertexAttribArray(mNormalHandle);
+		gl.bindBuffer(GL.ARRAY_BUFFER, vbNormals);
+		gl.vertexAttribPointer(mNormalHandle, mNormalDataSize, GL.FLOAT, false, mStrideNormalBytes, 0);
+		gl.enableVertexAttribArray(mNormalHandle);
 
-		GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 3 * triangles.size());
+		gl.drawArrays(GL.TRIANGLES, 0, 3 * triangles.size());
+	}
+
+	/**
+	 * Releases this object's buffer objects. Gliders, clouds and birds come and
+	 * go constantly, so without this their stores accumulate for the life of
+	 * the context.
+	 */
+	public void release(GL gl) {
+		if (vbVertices != null) {
+			gl.deleteBuffer(vbVertices);
+			gl.deleteBuffer(vbColors);
+			gl.deleteBuffer(vbNormals);
+			vbVertices = vbColors = vbNormals = null;
+			capVertices = capColors = capNormals = 0;
+		}
+		for (int i = 0; i < polywires.size(); i++) {
+			polywires.get(i).release(gl);
+		}
 	}
 
 	/**
@@ -904,7 +963,11 @@ public class Obj3d implements CameraSubject {
 				lineIndicesSB = ByteBuffer.allocateDirect(indices.length * 2).order(ByteOrder.nativeOrder()).asShortBuffer();
 				lineIndicesSB.put(indices);
 			}
-
+			verticesFB.position(0);
+			colorsFB.position(0);
+			normalsFB.position(0);
+			lineIndicesSB.position(0);
+			dirtyUpload = true;
 		}
 
 		/**
@@ -915,29 +978,64 @@ public class Obj3d implements CameraSubject {
 		/**
 		 * Draws this triangle on the screen.
 		 */
-		void drawLines(float[] mMVPMatrix, int mMVPMatrixHandle, int mPositionHandle, int mColorHandle, int mNormalHandle) {
-			// Pass in the position information
-			verticesFB.position(mPositionOffset);
-			GLES20.glVertexAttribPointer(mPositionHandle, mPositionDataSize, GLES20.GL_FLOAT, false, mStrideBytes, verticesFB);
+		private GL.Buf vbVertices, vbColors, vbNormals, ebIndices;
+		private boolean dirtyUpload = true;
 
-			GLES20.glEnableVertexAttribArray(mPositionHandle);
+		void drawLines(GL gl, int mPositionHandle, int mColorHandle, int mNormalHandle) {
+			if (vbVertices == null) {
+				vbVertices = gl.createBuffer();
+				vbColors = gl.createBuffer();
+				vbNormals = gl.createBuffer();
+				ebIndices = gl.createBuffer();
+				// The index pattern is built once and never changes.
+				lineIndicesSB.position(0);
+				gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ebIndices);
+				gl.bufferData(GL.ELEMENT_ARRAY_BUFFER, lineIndicesSB, GL.STATIC_DRAW);
+				dirtyUpload = true;
+			}
+
+			if (dirtyUpload) {
+				verticesFB.position(0);
+				colorsFB.position(0);
+				normalsFB.position(0);
+				gl.bindBuffer(GL.ARRAY_BUFFER, vbVertices);
+				gl.bufferData(GL.ARRAY_BUFFER, verticesFB, GL.DYNAMIC_DRAW);
+				gl.bindBuffer(GL.ARRAY_BUFFER, vbColors);
+				gl.bufferData(GL.ARRAY_BUFFER, colorsFB, GL.DYNAMIC_DRAW);
+				gl.bindBuffer(GL.ARRAY_BUFFER, vbNormals);
+				gl.bufferData(GL.ARRAY_BUFFER, normalsFB, GL.STATIC_DRAW);
+				dirtyUpload = false;
+			}
+
+			// Pass in the position information
+			gl.bindBuffer(GL.ARRAY_BUFFER, vbVertices);
+			gl.vertexAttribPointer(mPositionHandle, mPositionDataSize, GL.FLOAT, false, mStrideBytes, 0);
+			gl.enableVertexAttribArray(mPositionHandle);
 
 			// Pass in the color information
-			colorsFB.position(mColorOffset);
-			GLES20.glVertexAttribPointer(mColorHandle, mColorDataSize, GLES20.GL_FLOAT, false, mColorStrideBytes, colorsFB);
-
-			GLES20.glEnableVertexAttribArray(mColorHandle);
+			gl.bindBuffer(GL.ARRAY_BUFFER, vbColors);
+			gl.vertexAttribPointer(mColorHandle, mColorDataSize, GL.FLOAT, false, mColorStrideBytes, 0);
+			gl.enableVertexAttribArray(mColorHandle);
 
 			// Pass in the normal information
-			normalsFB.position(mNormalOffset);
-			GLES20.glVertexAttribPointer(mNormalHandle, mNormalDataSize, GLES20.GL_FLOAT, false, mStrideNormalBytes, normalsFB);
+			gl.bindBuffer(GL.ARRAY_BUFFER, vbNormals);
+			gl.vertexAttribPointer(mNormalHandle, mNormalDataSize, GL.FLOAT, false, mStrideNormalBytes, 0);
+			gl.enableVertexAttribArray(mNormalHandle);
 
-			GLES20.glEnableVertexAttribArray(mNormalHandle);
+			// WebGL ignores widths above 1 - trails and sector lines are 1px there.
+			gl.lineWidth(thickness);
+			gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ebIndices);
+			gl.drawElements(GL.LINES, n * 2 - 2, GL.UNSIGNED_SHORT, 0);
+		}
 
-			lineIndicesSB.position(0);
-			GLES20.glLineWidth(thickness);
-			GLES20.glDrawElements(GLES20.GL_LINES, n * 2 - 2, GLES20.GL_UNSIGNED_SHORT, lineIndicesSB);
-			// GLES20.glDrawArrays(GLES20.GL_LINE_LOOP, 0, n);
+		void release(GL gl) {
+			if (vbVertices != null) {
+				gl.deleteBuffer(vbVertices);
+				gl.deleteBuffer(vbColors);
+				gl.deleteBuffer(vbNormals);
+				gl.deleteBuffer(ebIndices);
+				vbVertices = vbColors = vbNormals = ebIndices = null;
+			}
 		}
 
 	}

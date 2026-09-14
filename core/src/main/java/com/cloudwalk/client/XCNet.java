@@ -8,9 +8,8 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.StringTokenizer;
 
-import android.util.Log;
+import com.cloudwalk.platform.Log;
 
-import com.cloudwalk.flightclub.Tools;
 import com.cloudwalk.framework3d.Tools3d;
 
 /**
@@ -114,9 +113,8 @@ public class XCNet implements Runnable {
 							xcModelViewer.clock.start();
 							xcModelViewer.xcModel.startPlay();
 						} else {
-							Tools.showInfoDialog("Error",
-									"Game server is not compatible with this client.\nPlease update Flight Club on phone that acts as Game Server",
-									xcModelViewer.modelEnv.getContext());
+							xcModelViewer.modelEnv.showDialog("Error",
+									"Game server is not compatible with this client.\nPlease update Flight Club on phone that acts as Game Server");
 						}
 
 					}

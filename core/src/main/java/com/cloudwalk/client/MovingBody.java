@@ -9,7 +9,7 @@
  */
 package com.cloudwalk.client;
 
-import android.util.Log;
+import com.cloudwalk.platform.Log;
 
 import com.cloudwalk.framework3d.ModelViewer;
 import com.cloudwalk.framework3d.Obj3dDir;

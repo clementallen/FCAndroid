@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.io.StreamTokenizer;
 import java.util.Random;
 
-import android.util.Log;
+import com.cloudwalk.platform.Log;
 
 import com.cloudwalk.framework3d.CameraSubject;
 import com.cloudwalk.framework3d.ClockObserver;

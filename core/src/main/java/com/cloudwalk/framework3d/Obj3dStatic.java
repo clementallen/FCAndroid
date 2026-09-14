@@ -17,9 +17,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import android.graphics.Color;
-import android.opengl.GLES20;
-import android.util.Log;
+import com.cloudwalk.platform.Color;
+import com.cloudwalk.gl.GL;
+import com.cloudwalk.platform.Log;
 
 import com.cloudwalk.client.Task;
 
@@ -82,10 +82,10 @@ public class Obj3dStatic {
 	 * 
 	 * @see ModelCanvas#paintModel
 	 */
-	public static void draw(float[] mMVPMatrix, int mMVPMatrixHandle, int mPositionHandle, int mColorHandle, int mNormalHandle) {
+	public static void draw(GL gl, int mPositionHandle, int mColorHandle, int mNormalHandle) {
 		try {
-			drawTriangles(mMVPMatrix, mMVPMatrixHandle, mPositionHandle, mColorHandle, mNormalHandle);
-			drawLines(mMVPMatrix, mMVPMatrixHandle, mPositionHandle, mColorHandle, mNormalHandle);
+			drawTriangles(gl, mPositionHandle, mColorHandle, mNormalHandle);
+			drawLines(gl, mPositionHandle, mColorHandle, mNormalHandle);
 		} catch (Exception e) {
 			Log.e("FC OBJ3D draw", e.getMessage(), e);
 		}
@@ -255,9 +255,9 @@ public class Obj3dStatic {
 	static private FloatBuffer colorsFB = null;
 	static private FloatBuffer normalsFB = null;
 
-	static private int verticesFBIdx = 0;
-	static private int colorsFBIdx = 0;
-	static private int normalsFBIdx = 0;
+	static private GL.Buf verticesFBIdx = null;
+	static private GL.Buf colorsFBIdx = null;
+	static private GL.Buf normalsFBIdx = null;
 
 	/** How many bytes per float. */
 	static private final int mBytesPerFloat = 4;
@@ -361,7 +361,7 @@ public class Obj3dStatic {
 
 	static float[] normal = new float[9];
 
-	public static void fillVerticesData() {
+	public static void fillVerticesData(GL gl) {
 		// Log.i("FC", Arrays.toString(verticesData));
 		verticesFB = ByteBuffer.allocateDirect(9 * triangles.size() * mBytesPerFloat).order(ByteOrder.nativeOrder()).asFloatBuffer();
 		colorsFB = ByteBuffer.allocateDirect(12 * triangles.size() * mBytesPerFloat).order(ByteOrder.nativeOrder()).asFloatBuffer();
@@ -387,22 +387,21 @@ public class Obj3dStatic {
 			colorsFB.put(triangle.colorsData);
 
 		}
-		final int buffers[] = new int[3];
-		GLES20.glGenBuffers(3, buffers, 0);
+		final GL.Buf buffers[] = new GL.Buf[] { gl.createBuffer(), gl.createBuffer(), gl.createBuffer() };
 
 		verticesFB.flip();
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, buffers[0]);
-		GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, verticesFB.capacity() * mBytesPerFloat, verticesFB, GLES20.GL_STATIC_DRAW);
+		gl.bindBuffer(GL.ARRAY_BUFFER, buffers[0]);
+		gl.bufferData(GL.ARRAY_BUFFER, verticesFB, GL.STATIC_DRAW);
 
 		normalsFB.flip();
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, buffers[1]);
-		GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, normalsFB.capacity() * mBytesPerFloat, normalsFB, GLES20.GL_STATIC_DRAW);
+		gl.bindBuffer(GL.ARRAY_BUFFER, buffers[1]);
+		gl.bufferData(GL.ARRAY_BUFFER, normalsFB, GL.STATIC_DRAW);
 
 		colorsFB.flip();
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, buffers[2]);
-		GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, colorsFB.capacity() * mBytesPerFloat, colorsFB, GLES20.GL_STATIC_DRAW);
+		gl.bindBuffer(GL.ARRAY_BUFFER, buffers[2]);
+		gl.bufferData(GL.ARRAY_BUFFER, colorsFB, GL.STATIC_DRAW);
 
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
+		gl.bindBuffer(GL.ARRAY_BUFFER, null);
 
 		verticesFBIdx = buffers[0];
 		normalsFBIdx = buffers[1];
@@ -418,29 +417,29 @@ public class Obj3dStatic {
 		// Log.w("OBJ3D", Arrays.toString(n));
 	}
 
-	static void drawTriangles(float[] mMVPMatrix, int mMVPMatrixHandle, int mPositionHandle, int mColorHandle, int mNormalHandle) {
+	static void drawTriangles(GL gl, int mPositionHandle, int mColorHandle, int mNormalHandle) {
 		if (!static_initialized) {
-			fillVerticesData();
+			fillVerticesData(gl);
 		}
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, verticesFBIdx);
-		GLES20.glEnableVertexAttribArray(mPositionHandle);
-		GLES20.glVertexAttribPointer(mPositionHandle, mPositionDataSize, GLES20.GL_FLOAT, false, 0, 0);
+		gl.bindBuffer(GL.ARRAY_BUFFER, verticesFBIdx);
+		gl.enableVertexAttribArray(mPositionHandle);
+		gl.vertexAttribPointer(mPositionHandle, mPositionDataSize, GL.FLOAT, false, 0, 0);
 
 		// Pass in the normal information
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, normalsFBIdx);
-		GLES20.glEnableVertexAttribArray(mNormalHandle);
-		GLES20.glVertexAttribPointer(mNormalHandle, mNormalDataSize, GLES20.GL_FLOAT, false, 0, 0);
+		gl.bindBuffer(GL.ARRAY_BUFFER, normalsFBIdx);
+		gl.enableVertexAttribArray(mNormalHandle);
+		gl.vertexAttribPointer(mNormalHandle, mNormalDataSize, GL.FLOAT, false, 0, 0);
 
 		// Pass in the texture information
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, colorsFBIdx);
-		GLES20.glEnableVertexAttribArray(mColorHandle);
-		GLES20.glVertexAttribPointer(mColorHandle, mColorDataSize, GLES20.GL_FLOAT, false, 0, 0);
+		gl.bindBuffer(GL.ARRAY_BUFFER, colorsFBIdx);
+		gl.enableVertexAttribArray(mColorHandle);
+		gl.vertexAttribPointer(mColorHandle, mColorDataSize, GL.FLOAT, false, 0, 0);
 
 		// Clear the currently bound buffer (so future OpenGL calls do not use this buffer).
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
+		gl.bindBuffer(GL.ARRAY_BUFFER, null);
 
 		// Draw the cubes.
-		GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 3 * triangles.size());
+		gl.drawArrays(GL.TRIANGLES, 0, 3 * triangles.size());
 	}
 
 	/**
@@ -452,10 +451,10 @@ public class Obj3dStatic {
 	private static FloatBuffer normalsFBWire = null;
 	private static ShortBuffer lineIndicesSBWire = null;
 
-	static private int verticesFBWireIdx = 0;
-	static private int colorsFBWireIdx = 0;
-	static private int normalsFBWireIdx = 0;
-	static private int lineIndicesSBWireIdx = 0;
+	static private GL.Buf verticesFBWireIdx = null;
+	static private GL.Buf colorsFBWireIdx = null;
+	static private GL.Buf normalsFBWireIdx = null;
+	static private GL.Buf lineIndicesSBWireIdx = null;
 
 	static class Polywire {
 
@@ -496,7 +495,7 @@ public class Obj3dStatic {
 
 	}
 
-	public static void fillVerticesDataWire() {
+	public static void fillVerticesDataWire(GL gl) {
 		num_points_wire = 0;
 		for (int i = 0; i < polywires.size(); i++)
 			num_points_wire += polywires.get(i).n;
@@ -526,27 +525,26 @@ public class Obj3dStatic {
 		Log.i("FC WIRE", "polywires: " + polywires.size());
 		Log.i("FC WIRE", "lineIndicesSBWire.capacity(): " + lineIndicesSBWire.capacity());
 
-		final int buffers[] = new int[4];
-		GLES20.glGenBuffers(4, buffers, 0);
+		final GL.Buf buffers[] = new GL.Buf[] { gl.createBuffer(), gl.createBuffer(), gl.createBuffer(), gl.createBuffer() };
 
 		verticesFBWire.flip();
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, buffers[0]);
-		GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, verticesFBWire.capacity() * mBytesPerFloat, verticesFBWire, GLES20.GL_STATIC_DRAW);
+		gl.bindBuffer(GL.ARRAY_BUFFER, buffers[0]);
+		gl.bufferData(GL.ARRAY_BUFFER, verticesFBWire, GL.STATIC_DRAW);
 
 		normalsFBWire.flip();
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, buffers[1]);
-		GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, normalsFBWire.capacity() * mBytesPerFloat, normalsFBWire, GLES20.GL_STATIC_DRAW);
+		gl.bindBuffer(GL.ARRAY_BUFFER, buffers[1]);
+		gl.bufferData(GL.ARRAY_BUFFER, normalsFBWire, GL.STATIC_DRAW);
 
 		colorsFBWire.flip();
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, buffers[2]);
-		GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, colorsFBWire.capacity() * mBytesPerFloat, colorsFBWire, GLES20.GL_STATIC_DRAW);
+		gl.bindBuffer(GL.ARRAY_BUFFER, buffers[2]);
+		gl.bufferData(GL.ARRAY_BUFFER, colorsFBWire, GL.STATIC_DRAW);
 
 		lineIndicesSBWire.flip();
-		GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, buffers[3]);
-		GLES20.glBufferData(GLES20.GL_ELEMENT_ARRAY_BUFFER, lineIndicesSBWire.capacity() * mBytesPerShort, lineIndicesSBWire, GLES20.GL_STATIC_DRAW);
+		gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buffers[3]);
+		gl.bufferData(GL.ELEMENT_ARRAY_BUFFER, lineIndicesSBWire, GL.STATIC_DRAW);
 
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
-		GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, 0);
+		gl.bindBuffer(GL.ARRAY_BUFFER, null);
+		gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
 
 		verticesFBWireIdx = buffers[0];
 		normalsFBWireIdx = buffers[1];
@@ -573,31 +571,31 @@ public class Obj3dStatic {
 	/**
 	 * Draws this triangle on the screen.
 	 */
-	static void drawLines(float[] mMVPMatrix, int mMVPMatrixHandle, int mPositionHandle, int mColorHandle, int mNormalHandle) {
+	static void drawLines(GL gl, int mPositionHandle, int mColorHandle, int mNormalHandle) {
 		if (!static_initialized_wire) {
-			fillVerticesDataWire();
+			fillVerticesDataWire(gl);
 		}
 
 		// Pass in the position information
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, verticesFBWireIdx);
-		GLES20.glEnableVertexAttribArray(mPositionHandle);
-		GLES20.glVertexAttribPointer(mPositionHandle, mPositionDataSize, GLES20.GL_FLOAT, false, 0, 0);
+		gl.bindBuffer(GL.ARRAY_BUFFER, verticesFBWireIdx);
+		gl.enableVertexAttribArray(mPositionHandle);
+		gl.vertexAttribPointer(mPositionHandle, mPositionDataSize, GL.FLOAT, false, 0, 0);
 
 		// Pass in the color information
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, colorsFBWireIdx);
-		GLES20.glEnableVertexAttribArray(mColorHandle);
-		GLES20.glVertexAttribPointer(mColorHandle, mColorDataSize, GLES20.GL_FLOAT, false, 0, 0);
+		gl.bindBuffer(GL.ARRAY_BUFFER, colorsFBWireIdx);
+		gl.enableVertexAttribArray(mColorHandle);
+		gl.vertexAttribPointer(mColorHandle, mColorDataSize, GL.FLOAT, false, 0, 0);
 
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, normalsFBWireIdx);
-		GLES20.glEnableVertexAttribArray(mNormalHandle);
-		GLES20.glVertexAttribPointer(mNormalHandle, mNormalDataSize, GLES20.GL_FLOAT, false, 0, 0);
+		gl.bindBuffer(GL.ARRAY_BUFFER, normalsFBWireIdx);
+		gl.enableVertexAttribArray(mNormalHandle);
+		gl.vertexAttribPointer(mNormalHandle, mNormalDataSize, GL.FLOAT, false, 0, 0);
 
-		GLES20.glLineWidth(1);
-		GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, lineIndicesSBWireIdx);
-		GLES20.glDrawElements(GLES20.GL_LINES, num_points_wire * 2 - polywires.size() * 2, GLES20.GL_UNSIGNED_SHORT, 0);
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
-		GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, 0);
-		// GLES20.glDrawArrays(GLES20.GL_LINE_LOOP, 0, n);
+		gl.lineWidth(1);
+		gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, lineIndicesSBWireIdx);
+		gl.drawElements(GL.LINES, num_points_wire * 2 - polywires.size() * 2, GL.UNSIGNED_SHORT, 0);
+		gl.bindBuffer(GL.ARRAY_BUFFER, null);
+		gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
+		// gl.drawArrays(GL.LINE_LOOP, 0, n);
 	}
 
 }

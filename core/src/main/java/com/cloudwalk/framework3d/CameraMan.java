@@ -11,8 +11,8 @@ package com.cloudwalk.framework3d;
 
 import java.util.Arrays;
 
-import android.graphics.Color;
-import android.util.Log;
+import com.cloudwalk.platform.Color;
+import com.cloudwalk.platform.Log;
 
 /**
  * This class implements camera functionality such as cutting smoothly between different camera subjects and mapping (x, y, z) onto the screen (y_, z_)). The

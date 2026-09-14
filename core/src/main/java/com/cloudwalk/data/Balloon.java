@@ -11,8 +11,8 @@ package com.cloudwalk.data;
 
 import java.io.IOException;
 
-import android.graphics.Color;
-import android.util.Log;
+import com.cloudwalk.platform.Color;
+import com.cloudwalk.platform.Log;
 
 import com.cloudwalk.client.GliderType;
 import com.cloudwalk.framework3d.ModelViewer;

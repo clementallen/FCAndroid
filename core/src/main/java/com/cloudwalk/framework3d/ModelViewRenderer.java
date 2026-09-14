@@ -4,25 +4,24 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
-import javax.microedition.khronos.egl.EGLConfig;
-import javax.microedition.khronos.opengles.GL10;
-
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.graphics.Color;
-import android.opengl.GLES20;
-import android.opengl.GLSurfaceView;
-import android.opengl.Matrix;
-import android.preference.PreferenceManager;
+import com.cloudwalk.gl.GL;
+import com.cloudwalk.platform.Color;
+import com.cloudwalk.platform.Log;
+import com.cloudwalk.platform.Mat4;
+import com.cloudwalk.platform.Prefs;
 
 import com.cloudwalk.client.Task;
 import com.cloudwalk.client.XCModelViewer;
 
 /**
- * This class implements our custom renderer. Note that the GL10 parameter passed in is unused for OpenGL ES 2.0 renderers -- the static class GLES20 is used
- * instead.
+ * Draws the scene.
+ *
+ * Talks to a {@link GL} rather than to GLES20 directly, so the same code runs
+ * against Android's OpenGL ES 2.0 and against WebGL in a browser. The platform
+ * owns the surface and the frame callback; this class owns the program, the
+ * matrices and the draw order.
  */
-public class ModelViewRenderer implements GLSurfaceView.Renderer {
+public class ModelViewRenderer {
 
 	/**
 	 * Store the model matrix. This matrix is used to move models from object space (where each model can be thought of being located at the center of the
@@ -45,18 +44,21 @@ public class ModelViewRenderer implements GLSurfaceView.Renderer {
 	private float[] mMVMatrix = new float[16];
 
 	/** This will be used to pass in the transformation matrix. */
-	private int mMVPMatrixHandle;
+	private GL.Unif mMVPMatrixHandle;
 
 	/** This will be used to pass in the transformation matrix. */
-	private int mMVMatrixHandle;
+	private GL.Unif mMVMatrixHandle;
 
 	/** This will be used to pass in the light position. */
-	private int mLightPosHandle;
+	private GL.Unif mLightPosHandle;
 
 	/** This will be used to pass in model position information. */
 	int mPositionHandle;
 
 	/** This will be used to pass in model color information. */
+	/** Set by the platform when the drawing surface comes up. */
+	public GL gl;
+
 	int mColorHandle;
 
 	/** This will be used to pass in model normal information. */
@@ -84,13 +86,13 @@ public class ModelViewRenderer implements GLSurfaceView.Renderer {
 	boolean no_vbo = false;
 	int sky_color = Color.WHITE;
 	int ground_color = Color.WHITE;
-	SharedPreferences prefs;
+	Prefs prefs;
 
 	/**
 	 * Initialize the model data.
 	 */
-	public ModelViewRenderer(Context c) {
-		prefs = PreferenceManager.getDefaultSharedPreferences(c);
+	public ModelViewRenderer(Prefs prefs) {
+		this.prefs = prefs;
 		viewAngle = Integer.parseInt(prefs.getString("view_angle", "10"));
 		no_vbo = prefs.getBoolean("no_vbo", false);
 		sky_color = prefs.getInt("sky_color", Color.WHITE);
@@ -111,7 +113,7 @@ public class ModelViewRenderer implements GLSurfaceView.Renderer {
 		// Set the view matrix. This matrix can be said to represent the camera position.
 		// NOTE: In OpenGL 1, a ModelView matrix is used, which is a combination of a model and
 		// view matrix. In OpenGL 2, we can keep track of these matrices separately if we choose.
-		Matrix.setLookAtM(mViewMatrix, 0, -eye[1], eye[2], -eye[0], -focus[1], focus[2], -focus[0], upX, upY, upZ);
+		Mat4.setLookAtM(mViewMatrix, 0, -eye[1], eye[2], -eye[0], -focus[1], focus[2], -focus[0], upX, upY, upZ);
 
 		// // Position the eye behind the origin.
 		// final float eyeX = 0.0f;
@@ -135,17 +137,18 @@ public class ModelViewRenderer implements GLSurfaceView.Renderer {
 		// Set the view matrix. This matrix can be said to represent the camera position.
 		// NOTE: In OpenGL 1, a ModelView matrix is used, which is a combination of a model and
 		// view matrix. In OpenGL 2, we can keep track of these matrices separately if we choose.
-		// Matrix.setLookAtM(mViewMatrix, 0, eyeX, eyeY, eyeZ, lookX, lookY, lookZ, upX, upY, upZ);
+		// Mat4.setLookAtM(mViewMatrix, 0, eyeX, eyeY, eyeZ, lookX, lookY, lookZ, upX, upY, upZ);
 
 	}
 
-	@Override
-	public void onSurfaceCreated(GL10 glUnused, EGLConfig config) {
+	/** Called by the platform once the GL context exists, and again if it is lost. */
+	public void onSurfaceCreated(GL gl) {
+		this.gl = gl;
 		if (!no_vbo) {
 			Obj3dStatic.static_initialized = false;
 			Obj3dStatic.static_initialized_wire = false;
 		} 
-		GLES20.glClearColor(Color.red(sky_color) / 255f, Color.green(sky_color) / 255f, Color.blue(sky_color) / 255f, 0f);
+		gl.clearColor(Color.red(sky_color) / 255f, Color.green(sky_color) / 255f, Color.blue(sky_color) / 255f, 0f);
 
 		updateCamera();
 		final String vertexShader = "uniform mat4 u_MVPMatrix;      \n" // A constant representing the combined model/view/projection matrix.
@@ -195,100 +198,54 @@ public class ModelViewRenderer implements GLSurfaceView.Renderer {
 				+ "}                              \n";
 
 		// Load in the vertex shader.
-		int vertexShaderHandle = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER);
-
-		if (vertexShaderHandle != 0) {
-			// Pass in the shader source.
-			GLES20.glShaderSource(vertexShaderHandle, vertexShader);
-
-			// Compile the shader.
-			GLES20.glCompileShader(vertexShaderHandle);
-
-			// Get the compilation status.
-			final int[] compileStatus = new int[1];
-			GLES20.glGetShaderiv(vertexShaderHandle, GLES20.GL_COMPILE_STATUS, compileStatus, 0);
-
-			// If the compilation failed, delete the shader.
-			if (compileStatus[0] == 0) {
-				GLES20.glDeleteShader(vertexShaderHandle);
-				vertexShaderHandle = 0;
-			}
+		GL.Shdr vertexShaderHandle = gl.createShader(GL.VERTEX_SHADER);
+		gl.shaderSource(vertexShaderHandle, vertexShader);
+		gl.compileShader(vertexShaderHandle);
+		if (!gl.shaderCompiled(vertexShaderHandle)) {
+			String log = gl.shaderLog(vertexShaderHandle);
+			gl.deleteShader(vertexShaderHandle);
+			throw new RuntimeException("Error compiling vertex shader: " + log);
 		}
 
-		if (vertexShaderHandle == 0) {
-			throw new RuntimeException("Error creating vertex shader.");
-		}
-
-		// Load in the fragment shader shader.
-		int fragmentShaderHandle = GLES20.glCreateShader(GLES20.GL_FRAGMENT_SHADER);
-
-		if (fragmentShaderHandle != 0) {
-			// Pass in the shader source.
-			GLES20.glShaderSource(fragmentShaderHandle, fragmentShader);
-
-			// Compile the shader.
-			GLES20.glCompileShader(fragmentShaderHandle);
-
-			// Get the compilation status.
-			final int[] compileStatus = new int[1];
-			GLES20.glGetShaderiv(fragmentShaderHandle, GLES20.GL_COMPILE_STATUS, compileStatus, 0);
-
-			// If the compilation failed, delete the shader.
-			if (compileStatus[0] == 0) {
-				GLES20.glDeleteShader(fragmentShaderHandle);
-				fragmentShaderHandle = 0;
-			}
-		}
-
-		if (fragmentShaderHandle == 0) {
-			throw new RuntimeException("Error creating fragment shader.");
+		// Load in the fragment shader.
+		GL.Shdr fragmentShaderHandle = gl.createShader(GL.FRAGMENT_SHADER);
+		gl.shaderSource(fragmentShaderHandle, fragmentShader);
+		gl.compileShader(fragmentShaderHandle);
+		if (!gl.shaderCompiled(fragmentShaderHandle)) {
+			String log = gl.shaderLog(fragmentShaderHandle);
+			gl.deleteShader(fragmentShaderHandle);
+			throw new RuntimeException("Error compiling fragment shader: " + log);
 		}
 
 		// Create a program object and store the handle to it.
-		int programHandle = GLES20.glCreateProgram();
+		GL.Prog programHandle = gl.createProgram();
+		gl.attachShader(programHandle, vertexShaderHandle);
+		gl.attachShader(programHandle, fragmentShaderHandle);
 
-		if (programHandle != 0) {
-			// Bind the vertex shader to the program.
-			GLES20.glAttachShader(programHandle, vertexShaderHandle);
+		// Bind attributes
+		gl.bindAttribLocation(programHandle, 0, "a_Position");
+		gl.bindAttribLocation(programHandle, 1, "a_Color");
+		gl.bindAttribLocation(programHandle, 2, "a_Normal");
+		gl.bindAttribLocation(programHandle, 3, "a_FarDist");
 
-			// Bind the fragment shader to the program.
-			GLES20.glAttachShader(programHandle, fragmentShaderHandle);
-
-			// Bind attributes
-			GLES20.glBindAttribLocation(programHandle, 0, "a_Position");
-			GLES20.glBindAttribLocation(programHandle, 1, "a_Color");
-			GLES20.glBindAttribLocation(programHandle, 2, "a_Normal");
-			GLES20.glBindAttribLocation(programHandle, 3, "a_FarDist");
-
-			// Link the two shaders together into a program.
-			GLES20.glLinkProgram(programHandle);
-
-			// Get the link status.
-			final int[] linkStatus = new int[1];
-			GLES20.glGetProgramiv(programHandle, GLES20.GL_LINK_STATUS, linkStatus, 0);
-
-			// If the link failed, delete the program.
-			if (linkStatus[0] == 0) {
-				GLES20.glDeleteProgram(programHandle);
-				programHandle = 0;
-			}
-		}
-
-		if (programHandle == 0) {
-			throw new RuntimeException("Error creating program.");
+		gl.linkProgram(programHandle);
+		if (!gl.programLinked(programHandle)) {
+			String log = gl.programLog(programHandle);
+			gl.deleteProgram(programHandle);
+			throw new RuntimeException("Error linking program: " + log);
 		}
 
 		// Set program handles. These will later be used to pass in values to the program.
-		mMVPMatrixHandle = GLES20.glGetUniformLocation(programHandle, "u_MVPMatrix");
-		mMVMatrixHandle = GLES20.glGetUniformLocation(programHandle, "u_MVMatrix");
-		mLightPosHandle = GLES20.glGetUniformLocation(programHandle, "u_LightPos");
-		mPositionHandle = GLES20.glGetAttribLocation(programHandle, "a_Position");
-		mColorHandle = GLES20.glGetAttribLocation(programHandle, "a_Color");
-		mNormalHandle = GLES20.glGetAttribLocation(programHandle, "a_Normal");
-		mFarDistanceHandle = GLES20.glGetAttribLocation(programHandle, "a_FarDist");
+		mMVPMatrixHandle = gl.getUniformLocation(programHandle, "u_MVPMatrix");
+		mMVMatrixHandle = gl.getUniformLocation(programHandle, "u_MVMatrix");
+		mLightPosHandle = gl.getUniformLocation(programHandle, "u_LightPos");
+		mPositionHandle = gl.getAttribLocation(programHandle, "a_Position");
+		mColorHandle = gl.getAttribLocation(programHandle, "a_Color");
+		mNormalHandle = gl.getAttribLocation(programHandle, "a_Normal");
+		mFarDistanceHandle = gl.getAttribLocation(programHandle, "a_FarDist");
 
 		// Tell OpenGL to use this program when rendering.
-		GLES20.glUseProgram(programHandle);
+		gl.useProgram(programHandle);
 	}
 
 	public void updateProjectionMatrixIfNeeded() {
@@ -303,78 +260,78 @@ public class ModelViewRenderer implements GLSurfaceView.Renderer {
 			// Create a new perspective projection matrix. The height will stay the same
 			// while the width will vary as per aspect ratio.
 
-			Matrix.frustumM(mProjectionMatrix, 0, left, right, bottom, top, near, far);
+			Mat4.frustumM(mProjectionMatrix, 0, left, right, bottom, top, near, far);
 			lastFar = far;
 			// Log.i("FC MVR", "" + far);
 		}
 
 	}
 
-	@Override
-	public void onSurfaceChanged(GL10 glUnused, int width, int height) {
+	public void onSurfaceChanged(int width, int height) {
 		// Set the OpenGL viewport to the same size as the surface.
-		GLES20.glViewport(0, 0, width, height);
-		GLES20.glEnable(GLES20.GL_DEPTH_TEST);
-		GLES20.glEnable(GLES20.GL_CULL_FACE);
-		GLES20.glHint(GL10.GL_POLYGON_SMOOTH_HINT, GL10.GL_NICEST);
-		// GLES20.glEnable(GL10.GL_POLYGON_OFFSET_FILL);
-		// GLES20.glPolygonOffset(-0.1f,0);
-		// GLES20.glEnable(GL10.GL_ALPHA_TEST);
-		// GLES20.glEnable(GL10.GL_BLEND);
-		// GLES20.glBlendFunc(GL10.GL_SRC_ALPHA_SATURATE, GL10.GL_ONE);
-		// GLES20.glDepthFunc(GL10.GL_LEQUAL);
-		// GLES20.glEnable(GL10.GL_SMOOTH);
+		gl.viewport(0, 0, width, height);
+		gl.enable(GL.DEPTH_TEST);
+		gl.enable(GL.CULL_FACE);
+		// GL_POLYGON_SMOOTH_HINT used to be hinted here. It is a desktop-GL
+		// enum that does not exist in ES 2.0 - the call was raising
+		// GL_INVALID_ENUM and doing nothing.
 		this.width = width;
 		this.height = height;
 		updateProjectionMatrixIfNeeded();
 	}
 
-	@Override
-	public void onDrawFrame(GL10 glUnused) {
-		modelViewer.clock.oneFrame(this);
-	}
-
 	public void drawEverything() {
-		Matrix.setIdentityM(mModelMatrix, 0);
-		GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
+		Mat4.setIdentityM(mModelMatrix, 0);
+		gl.clear(GL.DEPTH_BUFFER_BIT | GL.COLOR_BUFFER_BIT);
 		updateCamera();
 		updateProjectionMatrixIfNeeded();
 		// This multiplies the view matrix by the model matrix, and stores the result in the MVP matrix
 		// (which currently contains model * view).
-		Matrix.multiplyMM(mMVMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
+		Mat4.multiplyMM(mMVMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
 
-		GLES20.glUniformMatrix4fv(mMVMatrixHandle, 1, false, mMVMatrix, 0);
+		gl.uniformMatrix4fv(mMVMatrixHandle, false, mMVMatrix);
 
-		Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mMVMatrix, 0);
+		Mat4.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mMVMatrix, 0);
 
-		GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
+		gl.uniformMatrix4fv(mMVPMatrixHandle, false, mMVPMatrix);
 
-		Matrix.multiplyMV(mLightPosInEyeSpace, 0, mMVMatrix, 0, mLightPosInModelSpace, 0);
+		Mat4.multiplyMV(mLightPosInEyeSpace, 0, mMVMatrix, 0, mLightPosInModelSpace, 0);
 
 		// Pass in the light position in eye space.
-		GLES20.glUniform3f(mLightPosHandle, mLightPosInEyeSpace[0], mLightPosInEyeSpace[1], mLightPosInEyeSpace[2]);
+		gl.uniform3f(mLightPosHandle, mLightPosInEyeSpace[0], mLightPosInEyeSpace[1], mLightPosInEyeSpace[2]);
 
-		GLES20.glVertexAttrib1f(mFarDistanceHandle, far);
+		gl.vertexAttrib1f(mFarDistanceHandle, far);
 
 		drawWorld();
-		Obj3dStatic.draw(mMVPMatrix, mMVPMatrixHandle, mPositionHandle, mColorHandle, mNormalHandle);
+		Obj3dStatic.draw(gl, mPositionHandle, mColorHandle, mNormalHandle);
 		for (int i = 0; i < modelViewer.obj3dManager.size(); i++) {
 			try {
 				Obj3d o = modelViewer.obj3dManager.obj(i);
-				Matrix.setIdentityM(mModelMatrix, 0);
-				o.draw(mMVPMatrix, mMVPMatrixHandle, mPositionHandle, mColorHandle, mNormalHandle);
+				Mat4.setIdentityM(mModelMatrix, 0);
+				o.draw(gl, mPositionHandle, mColorHandle, mNormalHandle);
 			} catch (Exception e) {
+				// This used to swallow the exception whole, which hides a
+				// broken object behind a silently missing one. Report it, but
+				// only once - it would otherwise fire every frame.
+				if (!drawErrorReported) {
+					drawErrorReported = true;
+					Log.e("FC", "Obj3d draw failed (further reports suppressed)", e);
+				}
 			}
 		}
 	}
 
+	private boolean drawErrorReported = false;
+
 	FloatBuffer worldBuffer;
+	private GL.Buf worldBufferObject;
+	private static final int WORLD_STRIDE = 10 * 4;
 
 	private void drawWorld() {
 		float d = 5000f;
 		float b = -0.02f;
 
-		if (worldBuffer == null) {
+		if (worldBufferObject == null) {
 			final float[] triangle1VerticesData = {
 					// X, Y, Z,
 					// R, G, B, A
@@ -384,22 +341,24 @@ public class ModelViewRenderer implements GLSurfaceView.Renderer {
 			// Initialize the buffers.
 			worldBuffer = ByteBuffer.allocateDirect(triangle1VerticesData.length * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
 			worldBuffer.put(triangle1VerticesData).position(0);
+
+			// The ground never moves, so this goes up once as a static VBO.
+			// It used to be handed to glVertexAttribPointer as a client-side
+			// array, which WebGL has no equivalent for.
+			worldBufferObject = gl.createBuffer();
+			gl.bindBuffer(GL.ARRAY_BUFFER, worldBufferObject);
+			gl.bufferData(GL.ARRAY_BUFFER, worldBuffer, GL.STATIC_DRAW);
 		}
 
-		// Pass in the position information
-		worldBuffer.position(0);
-		GLES20.glVertexAttribPointer(mPositionHandle, 3, GLES20.GL_FLOAT, false, 40, worldBuffer);
-		GLES20.glEnableVertexAttribArray(mPositionHandle);
-		// Pass in the normal information
-		worldBuffer.position(3);
-		GLES20.glVertexAttribPointer(mNormalHandle, 3, GLES20.GL_FLOAT, false, 40, worldBuffer);
-		GLES20.glEnableVertexAttribArray(mNormalHandle);
-		// Pass in the color information
-		worldBuffer.position(6);
-		GLES20.glVertexAttribPointer(mColorHandle, 4, GLES20.GL_FLOAT, false, 40, worldBuffer);
-		GLES20.glEnableVertexAttribArray(mColorHandle);
-		GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 3);
-
+		// One interleaved buffer: position, normal, colour - 10 floats a vertex.
+		gl.bindBuffer(GL.ARRAY_BUFFER, worldBufferObject);
+		gl.vertexAttribPointer(mPositionHandle, 3, GL.FLOAT, false, WORLD_STRIDE, 0);
+		gl.enableVertexAttribArray(mPositionHandle);
+		gl.vertexAttribPointer(mNormalHandle, 3, GL.FLOAT, false, WORLD_STRIDE, 3 * 4);
+		gl.enableVertexAttribArray(mNormalHandle);
+		gl.vertexAttribPointer(mColorHandle, 4, GL.FLOAT, false, WORLD_STRIDE, 6 * 4);
+		gl.enableVertexAttribArray(mColorHandle);
+		gl.drawArrays(GL.TRIANGLES, 0, 3);
 	}
 
 }

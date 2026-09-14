@@ -11,7 +11,7 @@ package com.cloudwalk.framework3d;
 
 import java.util.Vector;
 
-import android.util.Log;
+import com.cloudwalk.platform.Log;
 
 import com.cloudwalk.startup.ModelEnv;
 import com.cloudwalk.startup.ModelViewerThin;

@@ -11,15 +11,10 @@ package com.cloudwalk.client;
 
 import java.util.Arrays;
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.graphics.Color;
-import android.hardware.SensorEvent;
-import android.preference.Preference;
-import android.preference.PreferenceManager;
-import android.util.Log;
-import android.view.MotionEvent;
-import android.view.View;
+import com.cloudwalk.platform.PointerEvent;
+import com.cloudwalk.platform.Prefs;
+import com.cloudwalk.platform.Color;
+import com.cloudwalk.platform.Log;
 
 /**
  * This class implements a glider that is controlled by *the* user.
@@ -36,7 +31,7 @@ public class GliderUser extends GliderTask {
 	}
 
 	public void setColor() {
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences((Context) xcModelViewer.modelEnv);
+		Prefs prefs = xcModelViewer.modelEnv.getPrefs();
 		this.color = prefs.getInt("glider_color", Color.BLUE);
 		this.color2 = prefs.getInt("pilot_color", Color.YELLOW);
 		this.obj.setColor(0, this.color);
@@ -142,31 +137,31 @@ public class GliderUser extends GliderTask {
 		cameraMode = mode;
 	}
 
-	public void handleTouch(View v, MotionEvent event) {
+	public void handleTouch(PointerEvent event) {
 		if (onGround) {
 			return;
 		}
-		if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+		if (event.action == PointerEvent.UP) {
 			setMove(0);
 			// modelViewer.cameraMan.setSubject(this, true);
 			return;
 		}
-		float x = event.getX();
-		if (x < v.getWidth() * 2 / 7) {
+		float x = event.x;
+		if (x < event.viewWidth * 2 / 7) {
 			setMove(-1);
 			if (((XCCameraMan) modelViewer.cameraMan).mode != XCCameraMan.USER)
 				modelViewer.cameraMan.setSubject(this, true);
-		} else if (x > v.getWidth() * 5 / 7) {
+		} else if (x > event.viewWidth * 5 / 7) {
 			setMove(1);
 			if (((XCCameraMan) modelViewer.cameraMan).mode != XCCameraMan.USER)
 				modelViewer.cameraMan.setSubject(this, true);
 		} else {
 			setMove(0); // onwards
-			if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-				float y = event.getY();
-				if (y < v.getHeight() * 2 / 7) {
+			if (event.action == PointerEvent.DOWN) {
+				float y = event.y;
+				if (y < event.viewHeight * 2 / 7) {
 					goFaster();
-				} else if (y > v.getHeight() * 5 / 7) {
+				} else if (y > event.viewHeight * 5 / 7) {
 					goSlower();
 				} else {
 					// modelViewer.cameraMan.setSubject(this, false);
@@ -176,12 +171,13 @@ public class GliderUser extends GliderTask {
 		return;
 	}
 
-	public void handleGravity(SensorEvent event) {
+	/** Tilt steering: ax/ay are the device gravity vector's x and y components. */
+	public void handleGravity(float ax, float ay) {
 		if (onGround) {
 			return;
 		}
-		float x = event.values[0];
-		float y = event.values[1];
+		float x = ax;
+		float y = ay;
 		if (Math.abs(y) < 2) {
 			setMove(0);
 		} else if (y < -2) {

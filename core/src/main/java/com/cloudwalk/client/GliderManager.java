@@ -14,9 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
-import android.util.Log;
+import com.cloudwalk.platform.Prefs;
+import com.cloudwalk.platform.Log;
 
 import com.cloudwalk.framework3d.ClockObserver;
 import com.cloudwalk.framework3d.Tools3d;
@@ -84,7 +83,7 @@ public class GliderManager implements ClockObserver {
 				gliderUser.destroyMe();
 			}
 		}
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(xcModelViewer.modelEnv.getContext());
+		Prefs prefs = xcModelViewer.modelEnv.getPrefs();
 		gliderUser = new GliderUser(xcModelViewer, types[pilotType], id, prefs.getString("playerName", "P" + getRandomLetter() + getRandomLetter()));
 		pilotType_ = pilotType;
 	}
