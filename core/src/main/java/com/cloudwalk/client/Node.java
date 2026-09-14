@@ -11,6 +11,7 @@ package com.cloudwalk.client;
 
 import java.util.Vector;
 
+import com.cloudwalk.platform.Rnd;
 import com.cloudwalk.platform.Color;
 import com.cloudwalk.platform.Log;
 
@@ -229,7 +230,7 @@ class Node implements CameraSubject {
 			float[] r = new float[3];
 			float[] p = bird.p;
 			int size = liftSources.size();
-			int pos = (int) (Math.random() * size);
+			int pos = (int) (Rnd.random() * size);
 			int counter = 0;
 			while (counter < size) {
 				counter++;

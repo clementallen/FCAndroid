@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.StreamTokenizer;
 import java.util.Random;
 
+import com.cloudwalk.platform.Rnd;
 import com.cloudwalk.platform.Log;
 
 import com.cloudwalk.framework3d.CameraSubject;
@@ -50,7 +51,7 @@ public class Trigger implements ClockObserver, CameraSubject {
 	// unique id for each instance of this class
 	static int nextID = 0;
 	int myID;
-	static Random random = new Random(System.currentTimeMillis() / 1000 / 60 / 60 / 24);
+	static Random random = new Random(Rnd.daySeed());
 
 	/**
 	 * Creates a trigger at (x, y). t is the current time and t0 is the time that the trigger creates its first bubble.

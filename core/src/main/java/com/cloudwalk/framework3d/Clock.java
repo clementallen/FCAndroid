@@ -12,6 +12,7 @@ package com.cloudwalk.framework3d;
 import java.util.Vector;
 
 import com.cloudwalk.platform.Log;
+import com.cloudwalk.platform.Now;
 
 import com.cloudwalk.client.Trigger;
 import com.cloudwalk.client.XCModelViewer;
@@ -76,7 +77,7 @@ public class Clock {
 
 	public void start() {
 		running = true;
-		blockStart = currentTick = nextFrameDueMs = System.currentTimeMillis();
+		blockStart = currentTick = nextFrameDueMs = Now.millis();
 		modelTime = getTimeNow();
 		// for (int i = 0; i < observers.size(); i++) {
 		// ClockObserver observer = (ClockObserver) observers.elementAt(i);
@@ -112,6 +113,7 @@ public class Clock {
 	 * frame is due, while Android sleeps for the returned interval exactly as
 	 * it used to.
 	 *
+	 * @param renderer what to draw with, or null to simulate without drawing
 	 * @param nowMs wall clock, passed in so the caller and the clock agree
 	 * @return 0 if a frame ran, otherwise millis until the next one is due
 	 */
@@ -160,9 +162,11 @@ public class Clock {
 				}
 			}
 		}
-		renderer.drawEverything();
+		if (renderer != null) {
+			renderer.drawEverything();
+		}
 
-		long after = System.currentTimeMillis();
+		long after = Now.millis();
 		busyTime += after - nowMs;
 
 		// Advance the deadline rather than resetting it, so frame times do not
@@ -192,7 +196,7 @@ public class Clock {
 	 */
 	public void reanchor() {
 		modelTimeAtSync = modelTime;
-		realTimeAtSync = System.currentTimeMillis();
+		realTimeAtSync = Now.millis();
 		nextFrameDueMs = realTimeAtSync;
 		_t = 0;
 	}
@@ -204,7 +208,7 @@ public class Clock {
 
 	/* Returns the current model time right now (continuous). */
 	public final float getTimeNow() {
-		return (System.currentTimeMillis() - realTimeAtSync) * MODEL_TIME_PER_TICK + modelTimeAtSync;
+		return (Now.millis() - realTimeAtSync) * MODEL_TIME_PER_TICK + modelTimeAtSync;
 	}
 
 	private long realTimeAtSync;
@@ -218,7 +222,7 @@ public class Clock {
 			modelTimeAtSync = t;
 		else
 			modelTimeAtSync = t * .1f + getTimeNow() * .9f;
-		realTimeAtSync = System.currentTimeMillis();
+		realTimeAtSync = Now.millis();
 		Log.w("FC Clock", "Synctime:" + t + " Modeltime diff:" + (getTimeNow() - modelTime));
 		modelTime = getTimeNow();
 	}

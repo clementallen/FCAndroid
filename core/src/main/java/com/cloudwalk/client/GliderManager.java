@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
+import com.cloudwalk.platform.Rnd;
 import com.cloudwalk.platform.Prefs;
 import com.cloudwalk.platform.Log;
 
@@ -65,7 +66,9 @@ public class GliderManager implements ClockObserver {
 			types[4] = new GliderType(xcModelViewer, "vulture", 4);
 		} catch (IOException e) {
 			Log.e("FC", e.getMessage(), e);
-			System.exit(1);
+			// Was System.exit(1). Without the glider definitions there is no
+			// game, but killing the process is not this class's call.
+			throw new RuntimeException("could not load glider types", e);
 		}
 	}
 
@@ -89,7 +92,7 @@ public class GliderManager implements ClockObserver {
 	}
 
 	char getRandomLetter() {
-		return (char) ('a' + (int) (Math.floor(Math.random() * 26)));
+		return (char) ('a' + (int) (Math.floor(Rnd.random() * 26)));
 	}
 
 	/**

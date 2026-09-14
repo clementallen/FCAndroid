@@ -23,6 +23,7 @@ import java.util.Random;
 
 import net.e175.klaus.solarpositioning.AzimuthZenithAngle;
 import net.e175.klaus.solarpositioning.PSA;
+import com.cloudwalk.platform.Rnd;
 import com.cloudwalk.platform.Color;
 import com.cloudwalk.platform.Log;
 
@@ -327,7 +328,7 @@ public class Task implements CameraSubject {
 		float[][] r2 = new float[][] { { 0, 0, 0 }, { 0.8f * x, x + 0.1f, 0 }, { x, 2 * x + 0.1f, 0 }, { 2 * x, 4 * x + 0.1f, 0 } };
 		roadManager = new RoadManager(xcModelViewer, new float[][][] { r1, r2 });
 
-		// Random r = new Random(System.currentTimeMillis() / 1000 / 60 / 60 / 24);
+		// Random r = new Random(Rnd.daySeed());
 		// for (int i = 0; i < 100; i++) {
 		// Building.createTree(xcModelViewer, (4 + r.nextFloat()), (4 + r.nextFloat()), (4 + r.nextFloat()), r.nextFloat()
 		// * 3f * x, r.nextFloat() * 3f * x, 0, Color.rgb(200, 240, 200), Color.rgb(240, 240, 200));
@@ -367,7 +368,7 @@ public class Task implements CameraSubject {
 		float[][] r2 = new float[][] { { 0, 0, 0 }, { 0.8f * x, x + 0.1f, 0 }, { x, 2 * x + 0.1f, 0 }, { 3 * x, 3 * x + 0.1f, 0 } };
 		roadManager = new RoadManager(xcModelViewer, new float[][][] { r1, r2 });
 
-		Random r = new Random(System.currentTimeMillis() / 1000 / 60 / 60 / 24);
+		Random r = new Random(Rnd.daySeed());
 		for (int i = 0; i < 100; i++) {
 			Building.createTree(xcModelViewer, (4 + r.nextFloat()), (4 + r.nextFloat()), (4 + r.nextFloat()), r.nextFloat() * 3f * x, r.nextFloat() * 3f * x,
 					0, Color.rgb(200, 240, 200), Color.rgb(240, 240, 200));
@@ -389,7 +390,7 @@ public class Task implements CameraSubject {
 		wind_y = 0.00f;
 
 		// triggers
-		Random r = new Random(System.currentTimeMillis() / 1000 / 60 / 60 / 24);
+		Random r = new Random(Rnd.daySeed());
 		triggers = new Trigger[9 * 1 * 6];
 		float x_ = 0, y_ = 0;
 		for (int i = 1; i < 10; i++) {
@@ -611,7 +612,7 @@ public class Task implements CameraSubject {
 
 		y1 = y0 + HEXAGON;
 		x1 = x0 + HEXAGON;
-		Random r = new Random(System.currentTimeMillis() / 1000 / 60 / 60 / 24);
+		Random r = new Random(Rnd.daySeed());
 		float dhh = HEXAGON / 6;
 		// Log.i("FC TASK", "X:" + x1 + " Y:" + y1 + " dH:" + dh);
 		float dh = dhh + (r.nextFloat() - 0.5f) * 2;

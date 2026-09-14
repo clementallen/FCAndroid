@@ -61,7 +61,9 @@ public class XCModel extends Model {
 			msg = "Error loading task: " + id + "<br/>" + e;
 			xcModelViewer.modelView.setText(msg, PROMPT_LINE);
 			Log.e("FC", msg, e);
-			System.exit(1); // ?
+			// Was System.exit(1). A library has no business killing the
+			// process, and in a browser there is no process to kill.
+			throw new RuntimeException(msg, e);
 		}
 
 		if (!xcModelViewer.netFlag) {
