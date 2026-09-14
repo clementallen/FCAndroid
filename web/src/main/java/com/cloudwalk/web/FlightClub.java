@@ -140,11 +140,16 @@ public class FlightClub {
 	 * Called from requestAnimationFrame, which fires far more often than the
 	 * game's 20-25Hz, so most calls do nothing and return early. The clock
 	 * decides; this just asks.
+	 *
+	 * Deliberately takes no timestamp. requestAnimationFrame hands out
+	 * milliseconds since the page loaded, while model time is derived from the
+	 * epoch - mixing the two leaves every frame looking billions of
+	 * milliseconds early, and the game simply never starts.
 	 */
 	@JSExport
-	public void pump(double timestampMs) {
+	public void pump() {
 		if (started && surfaceReady) {
-			modelViewer.clock.pump(renderer, (long) timestampMs);
+			modelViewer.clock.pump(renderer, System.currentTimeMillis());
 		}
 	}
 

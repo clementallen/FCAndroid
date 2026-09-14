@@ -17,3 +17,8 @@
 core/build/
 web/build/
 android/build/
+
+# Shell build
+node_modules/
+dist/
+.wrangler/

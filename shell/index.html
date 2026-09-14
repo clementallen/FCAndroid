@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Flight Club</title>
+    <meta
+      name="description"
+      content="Cross-country hang gliding and paragliding. Find the thermals, get round the task."
+    />
+  </head>
+  <body data-screen="loading">
+    <main id="menu">
+      <header>
+        <h1>Flight Club</h1>
+        <p class="tagline">
+          Cross-country soaring. Find lift, climb to cloudbase, glide to the next thermal,
+          get round the course before the day dies.
+        </p>
+      </header>
+
+      <section>
+        <h2>Task</h2>
+        <div id="tasks" class="cards"></div>
+      </section>
+
+      <section>
+        <h2>Glider</h2>
+        <div id="gliders" class="cards cards-wide"></div>
+      </section>
+
+      <div class="menu-actions">
+        <button id="fly" class="primary">Fly</button>
+        <button id="open-settings">Settings</button>
+      </div>
+
+      <section class="keys">
+        <h2>Controls</h2>
+        <ul>
+          <li><kbd>&larr;</kbd> <kbd>&rarr;</kbd> turn</li>
+          <li><kbd>&uarr;</kbd> <kbd>&darr;</kbd> speed to fly</li>
+          <li><kbd>1</kbd>&ndash;<kbd>5</kbd> camera</li>
+          <li><kbd>Space</kbd> pause</li>
+          <li>drag to orbit, scroll to zoom</li>
+        </ul>
+      </section>
+
+      <footer>
+        <p>
+          Originally a Java applet by Dan Burton, 2001&ndash;2003. GPL.
+        </p>
+      </footer>
+    </main>
+
+    <div id="game">
+      <canvas id="gl"></canvas>
+      <div id="hud"></div>
+      <div id="messages" role="status" aria-live="polite"></div>
+      <div id="game-actions">
+        <div id="cameras"></div>
+        <button id="pause">Pause</button>
+        <button id="quit">Quit</button>
+      </div>
+    </div>
+
+    <dialog id="settings">
+      <h2>Settings</h2>
+      <form id="settings-form" method="dialog"></form>
+      <div class="dialog-actions">
+        <button id="settings-reset" type="button">Reset</button>
+        <button id="close-settings" type="button" class="primary">Done</button>
+      </div>
+      <p class="note">Changes apply the next time you fly.</p>
+    </dialog>
+
+    <dialog id="dialog">
+      <h2 id="dialog-title"></h2>
+      <p id="dialog-body"></p>
+      <div class="dialog-actions">
+        <button id="dialog-ok" type="button" class="primary">OK</button>
+      </div>
+    </dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

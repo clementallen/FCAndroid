@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "flightclub",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-01",
+
+  // Built by `npm run build` in shell/: Vite output plus the TeaVM bundle.
+  // Requests matching a file here are served from the edge without invoking
+  // the Worker at all.
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+
+  "observability": { "enabled": true }
+
+  // When multiplayer lands, the game server becomes a Durable Object:
+  //
+  //   "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "GameRoom" }] },
+  //   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GameRoom"] }]
+  //
+  // Workers cannot listen on a TCP socket, so XCGameServer does not port
+  // directly - but it is a line relay with a 10-second TIME heartbeat, which
+  // a Durable Object with WebSocket hibernation and an alarm does natively.
+}

@@ -1,5 +1,6 @@
 package com.cloudwalk.web;
 
+import org.teavm.jso.JSBody;
 import org.teavm.jso.ajax.XMLHttpRequest;
 import org.teavm.jso.typedarrays.ArrayBuffer;
 import org.teavm.jso.webaudio.AudioBuffer;
@@ -41,10 +42,26 @@ public final class WebSounds {
 		this.base = base;
 	}
 
+	/**
+	 * Builds the audio context.
+	 *
+	 * TeaVM 0.15's AudioContext.create() compiles to `new Context()`, which is
+	 * not a thing any browser defines, so it throws on the first call. Doing it
+	 * by hand also picks up the webkit-prefixed constructor that older Safari
+	 * still needs.
+	 */
+	@JSBody(script = "var C = window.AudioContext || window.webkitAudioContext;"
+			+ " return C ? new C() : null;")
+	private static native AudioContext newAudioContext();
+
 	/** Creates the context and starts loading. Must be called from a gesture. */
 	public void resume() {
 		if (ctx == null) {
-			ctx = AudioContext.create();
+			ctx = newAudioContext();
+			if (ctx == null) {
+				Log.w("FC AUDIO", "no Web Audio in this browser - running silent");
+				return;
+			}
 			master = ctx.createGain();
 			master.getGain().setValue(volume);
 			master.connect(ctx.getDestination());

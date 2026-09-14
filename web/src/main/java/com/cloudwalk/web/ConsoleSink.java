@@ -17,12 +17,14 @@ public final class ConsoleSink implements Log.Sink {
 		} else if (level >= Log.WARN) {
 			warn(line);
 		} else {
-			info(line);
+			// The engine logs its whole task load at INFO. console.debug keeps
+			// it available in devtools without burying everything else.
+			debug(line);
 		}
 	}
 
-	@JSBody(params = "s", script = "console.info(s);")
-	private static native void info(String s);
+	@JSBody(params = "s", script = "console.debug(s);")
+	private static native void debug(String s);
 
 	@JSBody(params = "s", script = "console.warn(s);")
 	private static native void warn(String s);
