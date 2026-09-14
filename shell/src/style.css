@@ -211,7 +211,10 @@ footer a { color: inherit; }
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: start;
-  padding: 0.9rem;
+  /* viewport-fit=cover puts the page under the notch and the gesture bar, so
+     every edge-anchored thing has to pay the inset back. */
+  padding: calc(0.9rem + env(safe-area-inset-top)) calc(0.9rem + env(safe-area-inset-right))
+    0.9rem calc(0.9rem + env(safe-area-inset-left));
   pointer-events: none;
 }
 
@@ -254,12 +257,20 @@ footer a { color: inherit; }
 .hud-vario-fill.sinking { background: var(--sink); }
 
 .hud-vario-label,
-.hud-info,
 .hud-fps {
   padding: 0.15rem 0.4rem;
   font-variant-numeric: tabular-nums;
   background: rgba(255, 255, 255, 0.6);
   border-radius: 5px;
+}
+
+.hud-info {
+  padding: 0.3rem 0.6rem;
+  font-variant-numeric: tabular-nums;
+  /* Was 60% white, which over the pale ground left grey text on grey. */
+  color: #fff;
+  background: rgba(20, 35, 46, 0.72);
+  border-radius: 7px;
 }
 
 .hud-compass {
@@ -284,8 +295,23 @@ footer a { color: inherit; }
   transform-origin: 50% 19px;
 }
 
-.hud-centre { justify-self: center; }
-.hud-info { font-size: 0.9rem; text-align: center; }
+.hud-centre { justify-self: center; max-width: min(24rem, 60vw); }
+
+.hud-info {
+  overflow: hidden;
+  font-size: 0.9rem;
+  text-align: center;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Android hides this on a double tap; here one tap is enough, since nothing
+   else on the overlay wants the gesture. */
+.hud-info.collapsed {
+  max-height: 1.5em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 
 .hud-fps {
   position: absolute;
@@ -296,7 +322,7 @@ footer a { color: inherit; }
 
 #messages {
   position: absolute;
-  bottom: 4.5rem;
+  bottom: calc(4.5rem + env(safe-area-inset-bottom));
   left: 50%;
   display: flex;
   flex-direction: column;
@@ -318,22 +344,141 @@ footer a { color: inherit; }
   from { opacity: 0; transform: translateY(6px); }
 }
 
+/* One row across the foot of the screen rather than a centred block that
+   wrapped to three rows on a phone and put Quit on the gesture bar. */
 #game-actions {
   position: absolute;
-  bottom: 0.9rem;
-  left: 50%;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
-  flex-wrap: wrap;
   gap: 0.4rem;
+  align-items: center;
   justify-content: center;
-  transform: translateX(-50%);
+  padding: 0.5rem calc(0.9rem + env(safe-area-inset-right))
+    calc(0.5rem + env(safe-area-inset-bottom)) calc(0.9rem + env(safe-area-inset-left));
 }
 
-#cameras { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+#cameras {
+  display: flex;
+  flex-shrink: 1;
+  gap: 0.4rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+#cameras::-webkit-scrollbar { display: none; }
+#game-actions > button { flex-shrink: 0; }
 
 #game-actions button {
   padding: 0.35rem 0.7rem;
   font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* Anything driven by a finger gets a real target; 30px was too small to hit
+   while the glider is moving. */
+@media (pointer: coarse) {
+  #game-actions button { min-height: 44px; padding-inline: 0.85rem; }
+  #game-actions { gap: 0.3rem; }
+  .hud-info { font-size: 0.8rem; }
+}
+
+/* ---------- controls screen ----------
+
+   A port of android/res/layout/controls.xml: columns weighted 2:3:2, the
+   middle one split 2:3:2 down, which is exactly where
+   GliderUser.handleTouch changes what a touch means. Drawing it is the only
+   thing that makes those bands discoverable.  */
+
+#controls-help {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  /* gray_transparent (#B0808080 in res/values/colors.xml) - Android hex is
+     ARGB, CSS is RGBA, so copying it verbatim tints the scene red. */
+  background: rgba(128, 128, 128, 0.69);
+}
+
+#controls-help[hidden] { display: none; }
+
+.ch-col { display: flex; flex-direction: column; }
+.ch-side { flex: 2; }
+.ch-middle { flex: 3; }
+.ch-cell { display: flex; flex: 2; }
+.ch-hint { flex: 3; }
+
+.ch-side,
+.ch-box {
+  border: 1px solid rgba(255, 255, 255, 0.75); /* textviewback's stroke */
+}
+
+.ch-col > span,
+.ch-cell > span {
+  display: block;
+  width: 100%;
+  align-self: center;
+  color: var(--ink);
+  text-align: center;
+}
+
+.ch-side > span,
+.ch-box > span { font-size: clamp(1.1rem, 3.4vw, 1.6rem); }
+.ch-hint > span { font-size: clamp(0.8rem, 2vw, 1rem); line-height: 1.7; }
+.ch-keys { font-weight: 400; opacity: 0.8; }
+
+/* The keyboard line is noise on a phone, and the sevenths are all that matter
+   there. */
+@media (pointer: coarse) {
+  .ch-keys { display: none; }
+}
+
+/* ---------- rotate prompt ----------
+
+   Only for touch devices held upright: a narrow desktop window is still
+   perfectly playable, so width alone must not trigger this. */
+
+#rotate { display: none; }
+
+@media (orientation: portrait) and (pointer: coarse) {
+  body[data-screen='playing'] #rotate {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+    background: var(--android-bg);
+  }
+}
+
+.rotate-card { max-width: 18rem; text-align: center; }
+.rotate-card p { margin: 1rem 0 0; font-size: 1.05rem; }
+
+.rotate-card svg {
+  overflow: visible;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Turn the phone itself rather than the whole drawing: rotating a box reads
+   as "rotate this" without needing an arrow to explain it. */
+.rotate-phone {
+  transform-origin: 24px 24px;
+  animation: tip 2.6s ease-in-out infinite;
+}
+
+@keyframes tip {
+  0%, 40% { transform: rotate(0deg); }
+  60%, 100% { transform: rotate(-90deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotate-phone { animation: none; transform: rotate(-90deg); }
 }
 
 /* ---------- dialogs ---------- */

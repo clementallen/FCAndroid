@@ -41,9 +41,14 @@ declare module '@engine' {
     setMessageHandler(handler: (text: string) => void): void;
     setDialogHandler(handler: (title: string, text: string) => void): void;
 
-    pointerDown(x: number, y: number): void;
-    pointerMove(x: number, y: number): void;
-    pointerUp(x: number, y: number): void;
+    /**
+     * `touch` splits the gesture: a finger either flies the glider (outer
+     * sevenths) or orbits the camera (middle), never both. A mouse does both,
+     * as it always has.
+     */
+    pointerDown(x: number, y: number, touch: boolean): void;
+    pointerMove(x: number, y: number, touch: boolean): void;
+    pointerUp(x: number, y: number, touch: boolean): void;
 
     /** -1 left, 0 straight, 1 right. */
     steer(direction: number): void;

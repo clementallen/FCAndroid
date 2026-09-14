@@ -46,6 +46,15 @@ export const SETTINGS: readonly Setting[] = [
 
   { group: 'Sound', key: 'sink_tone', label: 'Sink tone', kind: 'bool', default: 'true' },
   { group: 'Sound', key: 'ambient_sound', label: 'Wind and birds', kind: 'bool', default: 'true' },
+
+  {
+    group: 'Display',
+    key: 'show_controls',
+    label: 'Show controls screen',
+    kind: 'bool',
+    default: 'true',
+    hint: 'The diagram of which part of the screen does what, shown when a flight starts.',
+  },
 ];
 
 function read(key: string): string | null {

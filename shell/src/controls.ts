@@ -93,24 +93,26 @@ export function install(
     ];
   };
 
+  const isTouch = (e: PointerEvent) => e.pointerType !== 'mouse';
+
   const onPointerDown = (e: PointerEvent) => {
     canvas.setPointerCapture(e.pointerId);
     dragging = true;
     const [x, y] = pos(e);
-    fc.pointerDown(x, y);
+    fc.pointerDown(x, y, isTouch(e));
   };
 
   const onPointerMove = (e: PointerEvent) => {
     if (!dragging) return;
     const [x, y] = pos(e);
-    fc.pointerMove(x, y);
+    fc.pointerMove(x, y, isTouch(e));
   };
 
   const onPointerUp = (e: PointerEvent) => {
     if (!dragging) return;
     dragging = false;
     const [x, y] = pos(e);
-    fc.pointerUp(x, y);
+    fc.pointerUp(x, y, isTouch(e));
   };
 
   const onWheel = (e: WheelEvent) => {

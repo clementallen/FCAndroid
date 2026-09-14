@@ -198,27 +198,62 @@ public class FlightClub {
 	// --- input ---
 
 	@JSExport
-	public void pointerDown(double x, double y) {
-		dispatch(PointerEvent.DOWN, x, y);
+	public void pointerDown(double x, double y, boolean touch) {
+		dispatch(PointerEvent.DOWN, x, y, touch);
 	}
 
 	@JSExport
-	public void pointerMove(double x, double y) {
-		dispatch(PointerEvent.MOVE, x, y);
+	public void pointerMove(double x, double y, boolean touch) {
+		dispatch(PointerEvent.MOVE, x, y, touch);
 	}
 
 	@JSExport
-	public void pointerUp(double x, double y) {
-		dispatch(PointerEvent.UP, x, y);
+	public void pointerUp(double x, double y, boolean touch) {
+		dispatch(PointerEvent.UP, x, y, touch);
 	}
 
-	private void dispatch(int action, double x, double y) {
+	/** This gesture came from a finger, so it steers or orbits but not both. */
+	private boolean splitGesture;
+
+	/** ...and it began in the middle column, so it is an orbit. */
+	private boolean orbiting;
+
+	/**
+	 * A gesture goes to the glider, the camera, or both.
+	 *
+	 * A mouse drags both, which is how this has always worked and is harmless
+	 * on a desktop because the keyboard does the steering. A finger cannot
+	 * afford that: touch is the only way to fly, so every turn would also
+	 * swing the camera. So a touch gesture is split by where it starts, using
+	 * the same sevenths GliderUser.handleTouch already steers by and that the
+	 * Android controls screen draws - outer columns fly, middle orbits.
+	 *
+	 * The choice is latched on DOWN rather than tested per event: a finger
+	 * that wanders out of the band it started in should keep doing what it
+	 * began doing, not switch mid-drag.
+	 */
+	private void dispatch(int action, double x, double y, boolean touch) {
 		if (!started) {
 			return;
 		}
 		pointer.set(action, (float) x, (float) y, modelView.getWidth(), modelView.getHeight());
-		modelViewer.xcModel.gliderManager.gliderUser.handleTouch(pointer);
-		modelView.handleTouch(pointer);
+
+		if (action == PointerEvent.DOWN) {
+			splitGesture = touch;
+			float w = modelView.getWidth();
+			orbiting = x > w * 2f / 7f && x < w * 5f / 7f;
+		}
+
+		// The glider still needs DOWN of an orbit gesture - that is the tap
+		// that changes gear - and UP of every gesture, or a turn never stops.
+		if (!splitGesture || !orbiting || action != PointerEvent.MOVE) {
+			modelViewer.xcModel.gliderManager.gliderUser.handleTouch(pointer);
+		}
+		// UP unconditionally, so a drag that began as a steer cannot leave the
+		// camera holding a stale dx/dy.
+		if (!splitGesture || orbiting || action == PointerEvent.UP) {
+			modelView.handleTouch(pointer);
+		}
 	}
 
 	/** -1 left, 0 straight, 1 right. The keyboard's route into the glider. */

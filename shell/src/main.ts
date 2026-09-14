@@ -41,6 +41,28 @@ function flash(text: string): void {
   window.setTimeout(() => line.remove(), 6000);
 }
 
+/**
+ * Three separate things want the world held still - the task briefing, the
+ * pause button, and a phone turned upright - and they overlap. Tracking them
+ * as one set and recomputing means dismissing the briefing cannot resume a
+ * game the player paused, or one that is only showing a rotate prompt.
+ */
+type PauseReason = 'dialog' | 'user' | 'portrait' | 'controls';
+const pauses = new Set<PauseReason>();
+
+function applyPause(): void {
+  fc?.setPaused(pauses.size > 0);
+  // Only the button's own reason changes its label - the world being held for
+  // a briefing or a sideways phone is not something it should claim to undo.
+  el('#pause').textContent = pauses.has('user') ? 'Resume' : 'Pause';
+}
+
+function setPause(reason: PauseReason, on: boolean): void {
+  if (on) pauses.add(reason);
+  else pauses.delete(reason);
+  applyPause();
+}
+
 function showDialog(title: string, text: string): void {
   const dlg = el<HTMLDialogElement>('#dialog');
   el('#dialog-title').textContent = title;
@@ -48,8 +70,38 @@ function showDialog(title: string, text: string): void {
   // Nothing should move behind the task briefing. The engine raises this while
   // loading the task, so the gaggle would otherwise be airborne and gone by the
   // time the player has read it.
-  fc?.setPaused(true);
+  setPause('dialog', true);
   dlg.showModal();
+}
+
+/**
+ * A phone held upright - not merely a narrow window.
+ *
+ * ModelViewRenderer fixes the vertical field of view and lets the horizontal
+ * one follow the aspect ratio, so portrait shows under a quarter of the width
+ * landscape does. A narrow desktop window has the same aspect but a mouse and
+ * keyboard, and rotating a monitor is not an option, so gate on the pointer.
+ */
+function isPortraitPhone(): boolean {
+  return window.matchMedia('(orientation: portrait) and (pointer: coarse)').matches;
+}
+
+async function toggleFullscreen(): Promise<void> {
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+      return;
+    }
+    await document.documentElement.requestFullscreen();
+    // Only allowed while fullscreen, and only on platforms that have it -
+    // Safari has neither, which is what the manifest is for.
+    await (screen.orientation as ScreenOrientation & {
+      lock?(o: string): Promise<void>;
+    }).lock?.('landscape');
+  } catch {
+    // Refused (Safari, or a gesture the browser did not like). The button
+    // simply does nothing; nothing else depends on it.
+  }
 }
 
 function fitCanvas(canvas: HTMLCanvasElement): void {
@@ -99,7 +151,12 @@ function startGame(taskId: string, pilotType: number): void {
   // XCModel.startPlay() clears any pause right afterwards - so the pause has
   // to be re-applied here, once launching is done, or the gaggle flies away
   // behind the briefing.
-  if (el<HTMLDialogElement>('#dialog').open) fc.setPaused(true);
+  pauses.delete('user');
+  if (!el<HTMLDialogElement>('#dialog').open) pauses.delete('dialog');
+  if (settings.getBool('show_controls', true)) pauses.add('controls');
+  if (isPortraitPhone()) pauses.add('portrait');
+  el('#controls-help').hidden = !pauses.has('controls');
+  applyPause();
 
   buildCameraBar();
 
@@ -120,6 +177,8 @@ function startGame(taskId: string, pilotType: number): void {
 }
 
 function stopGame(): void {
+  pauses.clear();
+  el('#controls-help').hidden = true;
   cancelAnimationFrame(rafHandle);
   rafHandle = 0;
   teardownControls?.();
@@ -131,8 +190,7 @@ function stopGame(): void {
 }
 
 function togglePause(): void {
-  fc?.togglePause();
-  el('#pause').textContent = fc?.isPaused() ? 'Resume' : 'Pause';
+  setPause('user', !pauses.has('user'));
 }
 
 function buildCameraBar(): void {
@@ -264,10 +322,34 @@ function main(): void {
   );
   el('#dialog-ok').addEventListener('click', () => {
     el<HTMLDialogElement>('#dialog').close();
-    fc?.setPaused(false);
+    setPause('dialog', false);
+  });
+
+  el('#fullscreen').addEventListener('click', () => void toggleFullscreen());
+
+  // Any tap dismisses the controls screen, as on Android.
+  el('#controls-help').addEventListener('click', () => {
+    el('#controls-help').hidden = true;
+    setPause('controls', false);
+  });
+
+  // Tap the status block to fold it down to one line - it is the only thing
+  // the HUD puts over the middle of the view.
+  el('#hud').addEventListener('click', (e) => {
+    const info = (e.target as HTMLElement).closest('.hud-info');
+    info?.classList.toggle('collapsed');
   });
 
   window.addEventListener('resize', () => fitCanvas(el<HTMLCanvasElement>('#gl')));
+
+  // Hold the world while the phone is upright: the rotate prompt covers the
+  // canvas, so the flight would otherwise carry on unseen.
+  const portrait = window.matchMedia('(orientation: portrait) and (pointer: coarse)');
+  portrait.addEventListener('change', (e) => {
+    if (!fc) return;
+    setPause('portrait', e.matches);
+    if (!e.matches) fitCanvas(el<HTMLCanvasElement>('#gl'));
+  });
 
   // Model time runs off the wall clock, but requestAnimationFrame stops while
   // a tab is hidden. Without this the world lurches forward by however long
