@@ -1,0 +1,21 @@
+{
+  // The Worker runs on workerd, not in a browser: it needs the Workers
+  // globals and must not see the DOM. Kept separate from shell/tsconfig.json
+  // because the two lib sets contradict each other.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    // node_modules lives in shell/, so resolve the Workers types from there
+    "types": ["@cloudflare/workers-types"],
+    "typeRoots": ["shell/node_modules"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noEmit": true
+  },
+  "include": ["worker"]
+}

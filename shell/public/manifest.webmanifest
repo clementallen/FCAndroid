@@ -1,0 +1,15 @@
+{
+  "name": "Flight Club",
+  "short_name": "Flight Club",
+  "description": "Cross-country hang gliding and paragliding. Find the thermals, get round the task.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#7fb4d4",
+  "theme_color": "#7fb4d4",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
