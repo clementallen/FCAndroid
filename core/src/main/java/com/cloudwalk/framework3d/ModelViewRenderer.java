@@ -277,6 +277,14 @@ public class ModelViewRenderer {
 		// GL_INVALID_ENUM and doing nothing.
 		this.width = width;
 		this.height = height;
+		// The projection is cached on the depth of vision alone, but its
+		// aspect ratio comes from the size, so a resize has to invalidate it
+		// too. Android never needed this - every activity is pinned to
+		// landscape, so the surface never changes shape mid-flight - but a
+		// browser can be rotated or resized at any time, and without it the
+		// game kept the aspect it started with: start upright, turn the phone,
+		// and the world stretched 4-5x sideways.
+		lastFar = Float.NaN;
 		updateProjectionMatrixIfNeeded();
 	}
 
