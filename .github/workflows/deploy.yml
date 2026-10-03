@@ -1,8 +1,11 @@
 name: Deploy
+run-name: Deploy ${{ github.ref_name }}
 
+# Merges to master deploy on their own. Any other branch deploys only when
+# asked: Actions -> Deploy -> Run workflow, and pick the branch.
 on:
   push:
-    branches: [master, claude/wonderful-ptolemy-fq8xpn]
+    branches: [master]
   workflow_dispatch:
 
 # One deploy at a time. A queued run is superseded by a newer one rather
