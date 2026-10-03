@@ -434,6 +434,11 @@ public class FlightClub {
 	}
 
 	@JSExport
+	public static int cameraNode() {
+		return XCCameraMan.NODE;
+	}
+
+	@JSExport
 	public static int cameraTask() {
 		return XCCameraMan.TASK;
 	}

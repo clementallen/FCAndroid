@@ -36,8 +36,8 @@
         <p class="keys">
           <kbd>&larr;</kbd><kbd>&rarr;</kbd> turn &middot;
           <kbd>&uarr;</kbd><kbd>&darr;</kbd> speed &middot;
-          <kbd>1</kbd>&ndash;<kbd>5</kbd> camera &middot;
-          <kbd>Space</kbd> pause &middot; drag to orbit, scroll to zoom
+          <kbd>1</kbd>&ndash;<kbd>6</kbd> camera &middot;
+          <kbd>P</kbd> pause &middot; drag to orbit, scroll to zoom
         </p>
         <p>
           Originally a Java applet by
@@ -63,7 +63,9 @@
           <div class="ch-cell ch-hint">
             <span>
               drag here to change view<br />
-              <b class="ch-keys">1&ndash;5 : camera views &middot; +/&minus; : zoom &middot; space : pause<br /></b>
+              1&ndash;6 : camera views<br />
+              +/&minus; : zoom in/out<br />
+              p : pause<br />
               tap to dismiss
             </span>
           </div>
@@ -72,11 +74,19 @@
         <div class="ch-col ch-side"><span>Turn right</span></div>
       </div>
 
-      <div id="game-actions">
-        <div id="cameras"></div>
-        <button id="pause">Pause</button>
-        <button id="fullscreen" aria-label="Full screen" title="Full screen">Full screen</button>
-        <button id="quit">Quit</button>
+      <!-- The three button groups of activity_startwifigame.xml: pause and
+           zoom down the top-left, the numbered views along the top-right, and
+           bottom-right where Android puts "Start race" - here, the two things
+           a browser needs that an app does not. -->
+      <div id="other-buttons" class="fc-buttons">
+        <button id="pause" aria-label="Pause" title="Pause (P)">p</button>
+        <button id="zoom-in" aria-label="Zoom in" title="Zoom in (+)">+</button>
+        <button id="zoom-out" aria-label="Zoom out" title="Zoom out (&minus;)">&minus;</button>
+      </div>
+      <div id="cameras" class="fc-buttons"></div>
+      <div id="session-buttons" class="fc-buttons">
+        <button id="fullscreen" class="wide">Full screen</button>
+        <button id="quit" class="wide">Quit</button>
       </div>
     </div>
 

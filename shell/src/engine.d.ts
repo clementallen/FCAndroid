@@ -81,6 +81,7 @@ declare module '@engine' {
     static cameraUser(): number;
     static cameraGaggle(): number;
     static cameraPlan(): number;
+    static cameraNode(): number;
     static cameraTask(): number;
     static cameraPilot(): number;
   }

@@ -1,16 +1,23 @@
 import type { FlightClub } from '@engine';
 
 /**
- * The instrument overlay.
+ * The instrument overlay, laid out as android/res/layout/activity_startwifigame.xml
+ * lays it out: the status text bottom-left, black with a white shadow and no
+ * panel; the variometer and compass side by side at the bottom centre. The
+ * dot and compass are Android's own drawables.
  *
- * On Android this was a TextView, a SeekBar for the variometer and a rotated
- * ImageView for the compass - and nothing else, which is the whole of what
- * this shows too. Here it is DOM over the canvas, polled a few times a second
- * rather than every frame: the underlying model updates at 5Hz anyway
- * (XCModel.tick), so there is nothing to gain from going faster.
+ * Polled a few times a second rather than every frame: the underlying model
+ * updates at 5Hz anyway (XCModel.tick), so there is nothing to gain from going
+ * faster.
  */
 
 const POLL_MS = 100;
+
+/**
+ * Android's SeekBar runs 0..100 with 50 + actualSink / 0.37 * 50, so the dot
+ * reaches either end at 0.37 units of climb or sink (StartFlightClub).
+ */
+const VARIO_FULL_SCALE = 0.37;
 
 export class Hud {
   private timer: number | undefined;
@@ -20,15 +27,14 @@ export class Hud {
     private readonly root: HTMLElement,
   ) {
     root.innerHTML = `
-      <div class="hud-left">
+      <div class="hud-info"></div>
+      <div class="hud-instruments">
         <div class="hud-vario" aria-label="Variometer">
-          <div class="hud-vario-track"><div class="hud-vario-fill"></div></div>
-          <div class="hud-vario-label">0.0</div>
+          <div class="hud-vario-line"></div>
+          <div class="hud-vario-tick"></div>
+          <img class="hud-vario-dot" src="hud/dot.png" alt="" width="10" height="10" />
         </div>
-      </div>
-      <div class="hud-centre"><div class="hud-info"></div></div>
-      <div class="hud-right">
-        <div class="hud-compass" aria-label="Compass"><div class="hud-needle"></div></div>
+        <img class="hud-compass" src="hud/notched_compass.png" alt="Compass" width="30" height="30" />
       </div>
       <div class="hud-fps"></div>`;
   }
@@ -40,25 +46,16 @@ export class Hud {
   }
 
   start(showFps: boolean): void {
-    const fill = this.q<HTMLElement>('.hud-vario-fill');
-    const varioLabel = this.q<HTMLElement>('.hud-vario-label');
-    const needle = this.q<HTMLElement>('.hud-needle');
+    const dot = this.q<HTMLElement>('.hud-vario-dot');
+    const compass = this.q<HTMLElement>('.hud-compass');
     const info = this.q<HTMLElement>('.hud-info');
     const fps = this.q<HTMLElement>('.hud-fps');
     fps.hidden = !showFps;
 
     this.timer = window.setInterval(() => {
-      // Model units: 1 unit of height is ~1000m, 1 unit of distance ~1km.
-      const vario = this.fc.getVario();
-      const clamped = Math.max(-1, Math.min(1, vario * 4));
-      fill.style.height = `${Math.abs(clamped) * 50}%`;
-      fill.style.bottom = clamped >= 0 ? '50%' : `${50 - Math.abs(clamped) * 50}%`;
-      fill.classList.toggle('sinking', clamped < 0);
-      varioLabel.textContent = vario.toFixed(1);
-
-      needle.style.transform = `rotate(${this.fc.getHeading()}deg)`;
-      // The engine's own status line already reports height, speed and
-      // distance flown (GliderTask.getStatusMsg), which is all Android shows.
+      const v = this.fc.getVario() / VARIO_FULL_SCALE;
+      dot.style.left = `${50 + Math.max(-1, Math.min(1, v)) * 50}%`;
+      compass.style.transform = `rotate(${this.fc.getHeading()}deg)`;
       info.innerHTML = this.fc.getInfoText();
       if (showFps) fps.textContent = `${this.fc.getFrameRate()} fps`;
     }, POLL_MS);

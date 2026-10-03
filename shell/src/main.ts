@@ -19,12 +19,16 @@ const el = <T extends HTMLElement>(sel: string): T => {
   return found;
 };
 
+// Android's six numbered views, in its order, named as XCCameraMan names them
+// - which is also how the status line reports them ("Camera: 2> Other"), so
+// the number on the button is the number the HUD prints and the key to press.
 const CAMERAS = [
-  { label: 'Pilot view', mode: FlightClub.cameraUser() },
-  { label: 'Gaggle', mode: FlightClub.cameraGaggle() },
-  { label: 'Plan', mode: FlightClub.cameraPlan() },
-  { label: 'Task', mode: FlightClub.cameraTask() },
-  { label: 'Chase', mode: FlightClub.cameraPilot() },
+  { name: 'Me', mode: FlightClub.cameraUser() },
+  { name: 'Other', mode: FlightClub.cameraGaggle() },
+  { name: 'Plan', mode: FlightClub.cameraPlan() },
+  { name: 'Far out', mode: FlightClub.cameraNode() },
+  { name: 'Task map', mode: FlightClub.cameraTask() },
+  { name: 'Eagle eyes', mode: FlightClub.cameraPilot() },
 ];
 
 let fc: FlightClub | undefined;
@@ -52,9 +56,12 @@ const pauses = new Set<PauseReason>();
 
 function applyPause(): void {
   fc?.setPaused(pauses.size > 0);
-  // Only the button's own reason changes its label - the world being held for
-  // a briefing or a sideways phone is not something it should claim to undo.
-  el('#pause').textContent = pauses.has('user') ? 'Resume' : 'Pause';
+  // Only the button's own reason shows as pressed - the world being held for a
+  // briefing or a sideways phone is not something it should claim to undo.
+  const pause = el('#pause');
+  const paused = pauses.has('user');
+  pause.setAttribute('aria-pressed', String(paused));
+  pause.title = paused ? 'Resume (P)' : 'Pause (P)';
 }
 
 function setPause(reason: PauseReason, on: boolean): void {
@@ -198,8 +205,9 @@ function buildCameraBar(): void {
   bar.replaceChildren();
   CAMERAS.forEach((cam, i) => {
     const b = document.createElement('button');
-    b.textContent = cam.label;
-    b.title = `View ${i + 1}`;
+    b.textContent = String(i + 1);
+    b.title = `${i + 1}: ${cam.name}`;
+    b.setAttribute('aria-label', `Camera ${i + 1}, ${cam.name}`);
     b.addEventListener('click', () => fc?.setCameraMode(cam.mode));
     bar.append(b);
   });
@@ -310,6 +318,8 @@ function main(): void {
   buildSettings();
 
   el('#pause').addEventListener('click', togglePause);
+  el('#zoom-in').addEventListener('click', () => fc?.zoomIn());
+  el('#zoom-out').addEventListener('click', () => fc?.zoomOut());
   el('#quit').addEventListener('click', () => {
     stopGame();
     document.body.dataset.screen = 'menu';
@@ -331,13 +341,6 @@ function main(): void {
   el('#controls-help').addEventListener('click', () => {
     el('#controls-help').hidden = true;
     setPause('controls', false);
-  });
-
-  // Tap the status block to fold it down to one line - it is the only thing
-  // the HUD puts over the middle of the view.
-  el('#hud').addEventListener('click', (e) => {
-    const info = (e.target as HTMLElement).closest('.hud-info');
-    info?.classList.toggle('collapsed');
   });
 
   window.addEventListener('resize', () => fitCanvas(el<HTMLCanvasElement>('#gl')));

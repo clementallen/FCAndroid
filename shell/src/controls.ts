@@ -53,6 +53,7 @@ export function install(
         e.preventDefault();
         return;
       case 'Space':
+      case 'KeyP':
         host.onPause();
         e.preventDefault();
         return;
@@ -68,8 +69,8 @@ export function install(
         break;
     }
 
-    // 1-5 cut between camera views, in the order the Android buttons use
-    const views = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'];
+    // 1-6 cut between camera views, in the order the Android buttons use
+    const views = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'];
     const idx = views.indexOf(code);
     if (idx >= 0) host.onCamera(idx);
   };
