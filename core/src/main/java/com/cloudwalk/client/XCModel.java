@@ -1,0 +1,248 @@
+/*
+  XCModel.java (part of 'Flight Club')
+	
+  This code is covered by the GNU General Public License
+  detailed at http://www.gnu.org/copyleft/gpl.html
+	
+  Flight Club docs located at http://www.danb.dircon.co.uk/hg/hg.htm
+  Copyright 2001-2003 Dan Burton <danb@dircon.co.uk>
+ */
+package com.cloudwalk.client;
+
+import java.util.Arrays;
+import java.util.Comparator;
+
+import com.cloudwalk.platform.Prefs;
+import com.cloudwalk.platform.Log;
+
+import com.cloudwalk.framework3d.Model;
+
+/**
+ * This class implements the top level manager for the flight club game.
+ */
+public class XCModel extends Model {
+	XCModelViewer xcModelViewer;
+	public GliderManager gliderManager;
+	public Task task;
+
+	/**
+	 * An intermediate var gives us a casted reference to the camera man. I'm not sure if this is good style. What if the camera man object changes ? Then this
+	 * link points to the wrong object !
+	 */
+	public XCCameraMan xcCameraMan;
+	public int mode;
+
+	public static final int DEMO = 0;
+	public static final int USER = 1;
+
+	public XCModel(XCModelViewer xcModelViewer) {
+		super(xcModelViewer);
+		this.xcModelViewer = xcModelViewer;
+		xcCameraMan = (XCCameraMan) xcModelViewer.cameraMan;
+	}
+
+	// don't want the super classes model (a cube).
+	protected void makeModel() {
+		;
+	}
+
+	/**
+	 * Loads the task. This involves downloading a file so may take a while over the net. Being unable to load the task is a *fatal* error. Well it would be,
+	 * but we create a dummy task in this case. This means the applet does *something* when the task file has gone belly up !
+	 */
+	public void loadTask(String id, int pilotType, int[] typeNums) {
+		String msg;
+
+		if (id == null || id.equals(""))
+			id = "default";
+		try {
+			task = new Task(xcModelViewer, id);
+		} catch (Exception e) {
+			msg = "Error loading task: " + id + "<br/>" + e;
+			xcModelViewer.modelView.setText(msg, PROMPT_LINE);
+			Log.e("FC", msg, e);
+			// Was System.exit(1). A library has no business killing the
+			// process, and in a browser there is no process to kill.
+			throw new RuntimeException(msg, e);
+		}
+
+		if (!xcModelViewer.netFlag) {
+			if (typeNums != null) {
+				gliderManager.createAIs(typeNums[0], typeNums[1], typeNums[2], typeNums[3]);
+			} else {
+				// defaults
+				gliderManager.createAIs(1, 1, 1, 1);
+			}
+		}
+		Prefs prefs = xcModelViewer.modelEnv.getPrefs();
+		if (prefs.getBoolean("show_task_info", true) && task.desc.length() > 0) {
+			xcModelViewer.modelEnv.showDialog("Task info:", task.desc);
+		}
+
+	}
+
+	private boolean userPlay_ = false; // flag true *after* calling startPlay
+
+	/**
+	 * Starts game play. The first call to this fn puts game into demo mode. Subsequent calls (when user presses <y>) launch the user glider.
+	 */
+	void startPlay() {
+		xcCameraMan.gotoTaskStart();
+		if (userPlay_) { // user pressed <y>
+			// xcCameraMan.setMode(XCCameraMan.GAGGLE);
+			gliderManager.launchUser();
+			xcCameraMan.setMode(XCCameraMan.USER);
+
+			if (!userModeSet) {
+				userModeSet = true;
+				mode = USER;
+			}
+		}
+
+		if (xcModelViewer.xcNet == null) {
+			gliderManager.launchAIs();
+			task.nodeManager.loadNodes(0, xcModelViewer.clock.getTime());
+		} else {
+			if (xcModelViewer.netTimeFlag) {
+				task.nodeManager.loadNodes(0, xcModelViewer.clock.getTime());
+			}
+		}
+		gliderManager.launchBirds();
+
+		if (!userPlay_) {
+			if (xcModelViewer.xcNet == null) {
+				xcCameraMan.setMode(XCCameraMan.GAGGLE);
+			} else {
+				// stay put ?
+			}
+			mode = DEMO;
+		}
+
+		// check these toggles are off
+		if (modelViewer.clock.paused)
+			togglePause();
+		if (modelViewer.clock.speedy)
+			toggleFastForward();
+
+		userPlay_ = true;
+	}
+
+	/**
+	 * How much model time passes each second of game play ? Either 1 second (normal) or 10 seconds (speedy). Speedy time is handy for cloud watching.
+	 */
+	public void toggleFastForward() {
+		modelViewer.clock.speedy = !modelViewer.clock.speedy;
+	}
+
+	public void togglePause() {
+		setPaused(!modelViewer.clock.paused);
+	}
+
+	/**
+	 * Freezes or resumes the world, and the noise it makes.
+	 *
+	 * Pausing silences the looping sounds. The director is driven from
+	 * GliderUser.tick, which a paused clock stops calling, so without this the
+	 * wind would simply keep blowing over a frozen world. Resuming needs no
+	 * counterpart: clearing the director's state makes the next tick start the
+	 * loops again as if the flight had just begun.
+	 *
+	 * Resuming also re-pegs model time, which runs off the wall clock and keeps
+	 * advancing while paused - otherwise a long pause would jump cloud ages and
+	 * trigger cycles forward the moment play resumed.
+	 */
+	public void setPaused(boolean paused) {
+		if (paused == modelViewer.clock.paused) {
+			return;
+		}
+		if (paused) {
+			if (gliderManager != null && gliderManager.gliderUser != null) {
+				gliderManager.gliderUser.sound.stop();
+			}
+		} else {
+			modelViewer.clock.reanchor();
+		}
+		modelViewer.clock.paused = paused;
+	}
+
+	private boolean userModeSet = false;
+
+	private float t_ = 0;
+	private static final float T_INTERVAL = 0.2f;
+	static final int GLIDER_LINE = 2;
+	static final int SERVER_LINE = 1;
+	static final int PROMPT_LINE = 0; // 0 is bottom line
+
+	/**
+	 * If we are in user mode then update the instruments and the status messages.
+	 */
+	public void tick(float t, float dt) {
+		if (t < t_ + T_INTERVAL) {
+			return;
+		}
+
+		t_ = t;
+
+		if (mode == USER) {
+			Glider g = gliderManager.gliderUser;
+			if (xcModelViewer.netFlag == true) {
+				GliderTask[] gliders = new GliderTask[gliderManager.numNet + 1];
+				int i = 0;
+				for (GliderTask glider : gliderManager.netGliders) {
+					if (glider != null)
+						gliders[i++] = glider;
+				}
+				gliders[gliders.length - 1] = gliderManager.gliderUser;
+				if (gliders.length > 1)
+					Arrays.sort(gliders, new Comparator<GliderTask>() {
+
+						@Override
+						public int compare(GliderTask lhs, GliderTask rhs) {
+							// TODO Auto-generated method stub
+							return (int) Math.signum(rhs.distanceFlown - lhs.distanceFlown);
+						}
+					});
+				String list = "";
+				for (GliderTask gliderTask : gliders) {
+					list += gliderTask.getShortStatus() + "<br/>";
+				}
+				list.substring(0, list.length() - 1);
+				modelViewer.modelView.setText(list, GLIDER_LINE);
+			} else {
+				modelViewer.modelView.setText(g.getStatusMsg(), GLIDER_LINE);
+			}
+		}
+
+		// server status
+		serverStatus();
+
+		// frame rate for when testing etc
+		if (modelViewer.modelEnv.getPrefs().getBoolean("fps", false)) {
+			String status = "FPS: " + modelViewer.clock.getFrameRate();//+ " TIME: "+modelViewer.clock.getTime(); // tmp
+			modelViewer.modelView.setText(status, 0);
+		}
+	}
+
+	/**
+	 * Display server info. Lumped camera status in here aswell !
+	 */
+	void serverStatus() {
+		String s;
+		if (xcModelViewer.xcNet == null) {
+			s = "Offline";
+		} else {
+			int n = 1 + gliderManager.numNet;
+			s = "Server: " + xcModelViewer.xcNet.host + " (" + n + " pilots online)";
+		}
+		modelViewer.modelView.setText(s + "<br/>" + xcCameraMan.getStatusMsg(), SERVER_LINE);
+	}
+
+	public void start(int gliderType) {
+		gliderManager.createUser(gliderType);
+		xcCameraMan.setMode(XCCameraMan.USER); // look at my new glider
+		startPlay();
+	}
+
+	private boolean prompting = false;
+
+}

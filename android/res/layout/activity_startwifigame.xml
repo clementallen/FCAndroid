@@ -1,0 +1,158 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.cloudwalk.flightclub.MainActivity" >
+
+    <com.cloudwalk.android.FlightClubSurfaceView
+        android:id="@+id/xcmodelview"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" />
+
+    <TextView
+        android:id="@+id/info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="left|bottom"
+        android:padding="5dp"
+        android:shadowColor="@color/white"
+        android:shadowDx="1"
+        android:shadowDy="1"
+        android:shadowRadius="1"
+        android:text="-"
+        android:textColor="@color/black" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center"
+        android:layout_marginBottom="@dimen/controls_padding"
+        android:gravity="center_vertical"
+        android:orientation="horizontal" >
+
+        <FrameLayout
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical" >
+
+            <LinearLayout
+                android:layout_width="100dp"
+                android:layout_height="1dp"
+                android:layout_gravity="center"
+                android:background="#000000" />
+
+            <LinearLayout
+                android:layout_width="1dp"
+                android:layout_height="10dp"
+                android:layout_gravity="center"
+                android:background="#000000" />
+
+            <SeekBar
+                android:id="@+id/vario"
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:clickable="false"
+                android:enabled="false"
+                android:focusable="false"
+                android:indeterminate="false"
+                android:max="100"
+                android:padding="5dp"
+                android:progress="100"
+                android:progressDrawable="@android:color/transparent"
+                android:thumb="@drawable/dot" />
+        </FrameLayout>
+
+        <ImageView
+            android:id="@+id/imageViewCompass"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center_vertical"
+            android:layout_margin="5dp"
+            android:src="@drawable/notched_compass" />
+    </LinearLayout>
+    
+    <FrameLayout
+        android:id="@+id/overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" >
+
+        <LinearLayout
+            android:id="@+id/otherbuttons"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|left"
+            android:layout_marginRight="20dp"
+            android:orientation="vertical" >
+
+            <Button
+                android:id="@+id/pause"
+                style="@style/button_text"
+                android:text="p" />
+
+            <Button
+                android:id="@+id/zoomin"
+                style="@style/button_text"
+                android:text="+" />
+
+            <Button
+                android:id="@+id/zoomout"
+                style="@style/button_text"
+                android:text="-" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/viewbuttons"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|right"
+            android:layout_marginRight="20dp"
+            android:orientation="horizontal" >
+
+            <Button
+                android:id="@+id/view0"
+                style="@style/button_text"
+                android:text="1" />
+
+            <Button
+                android:id="@+id/view1"
+                style="@style/button_text"
+                android:text="2" />
+
+            <Button
+                android:id="@+id/view2"
+                style="@style/button_text"
+                android:text="3" />
+
+            <Button
+                android:id="@+id/view3"
+                style="@style/button_text"
+                android:text="4" />
+
+            <Button
+                android:id="@+id/view4"
+                style="@style/button_text"
+                android:text="5" />
+
+            <Button
+                android:id="@+id/view5"
+                style="@style/button_text"
+                android:text="6" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/startbuttons"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|right"
+            android:orientation="horizontal" >
+
+            <Button
+                android:id="@+id/start_race"
+                style="@style/start_button_text"
+                android:text="Start race" />
+        </LinearLayout>
+
+        <include layout="@layout/controls" />
+    </FrameLayout>
+
+</FrameLayout>
