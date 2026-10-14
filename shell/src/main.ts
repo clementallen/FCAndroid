@@ -337,10 +337,16 @@ function main(): void {
 
   el('#fullscreen').addEventListener('click', () => void toggleFullscreen());
 
-  // Any tap dismisses the controls screen, as on Android.
-  el('#controls-help').addEventListener('click', () => {
+  // Any tap dismisses the controls screen, as on Android - and on a keyboard,
+  // any key, since the screen there is a list of keys.
+  const dismissControls = () => {
+    if (el('#controls-help').hidden) return;
     el('#controls-help').hidden = true;
     setPause('controls', false);
+  };
+  el('#controls-help').addEventListener('click', dismissControls);
+  window.addEventListener('keydown', (e) => {
+    if (!e.repeat && fc && !el<HTMLDialogElement>('#dialog').open) dismissControls();
   });
 
   window.addEventListener('resize', () => fitCanvas(el<HTMLCanvasElement>('#gl')));

@@ -419,6 +419,51 @@ footer a { color: inherit; }
 .ch-box > span { font-size: clamp(1.1rem, 3.4vw, 1.6rem); }
 .ch-hint > span { font-size: clamp(0.8rem, 2vw, 1rem); line-height: 1.7; }
 
+/* Which half shows: the sevenths only mean something under a finger, so a
+   mouse-and-keyboard player gets the key list instead. */
+.ch-touch { display: none; flex: 1; }
+.ch-keyboard { display: block; margin: auto; }
+
+@media (pointer: coarse) {
+  .ch-touch { display: flex; }
+  .ch-keyboard { display: none; }
+}
+
+.ch-keyboard {
+  max-width: 26rem;
+  padding: 1.2rem 1.6rem;
+  color: var(--ink);
+  background: var(--paper);
+  border-radius: 12px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+}
+
+.ch-keyboard h2 { margin: 0 0 0.8rem; font-size: 1.1rem; }
+
+.ch-keyboard dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.45rem 1.2rem;
+  margin: 0;
+}
+
+.ch-keyboard dt { white-space: nowrap; }
+.ch-keyboard dd { margin: 0; }
+
+.ch-keyboard kbd {
+  display: inline-block;
+  min-width: 1.7em;
+  padding: 0.05rem 0.35rem;
+  font: inherit;
+  font-size: 0.85em;
+  text-align: center;
+  border: 1px solid var(--edge);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+}
+
+.ch-keyboard p { margin: 1rem 0 0; font-size: 0.85rem; text-align: center; opacity: 0.65; }
+
 /* ---------- rotate prompt ----------
 
    Only for touch devices held upright: a narrow desktop window is still
