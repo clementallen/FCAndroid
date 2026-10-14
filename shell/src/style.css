@@ -429,40 +429,68 @@ footer a { color: inherit; }
   .ch-keyboard { display: none; }
 }
 
+/* Styled as the chooser is: a grey title bar over a white card, square
+   corners, #808080 rules - the Android palette, not the shell's dialogs. */
 .ch-keyboard {
-  max-width: 26rem;
-  padding: 1.2rem 1.6rem;
+  min-width: min(26rem, 90vw);
+  padding: 0;
+  overflow: hidden;
   color: var(--ink);
-  background: var(--paper);
-  border-radius: 12px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+  background: var(--android-card);
+  border: 1px solid var(--android-line);
+  border-radius: 0;
 }
 
-.ch-keyboard h2 { margin: 0 0 0.8rem; font-size: 1.1rem; }
+.ch-keyboard h2 {
+  margin: 0;
+  padding: 0.55rem 0.9rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+  background: var(--android-bar);
+  border-bottom: 1px solid var(--android-line);
+}
 
 .ch-keyboard dl {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 0.45rem 1.2rem;
   margin: 0;
 }
 
-.ch-keyboard dt { white-space: nowrap; }
-.ch-keyboard dd { margin: 0; }
-
-.ch-keyboard kbd {
-  display: inline-block;
-  min-width: 1.7em;
-  padding: 0.05rem 0.35rem;
-  font: inherit;
-  font-size: 0.85em;
-  text-align: center;
-  border: 1px solid var(--edge);
-  border-bottom-width: 2px;
-  border-radius: 4px;
+.ch-keyboard dt,
+.ch-keyboard dd {
+  display: flex;
+  gap: 0.3em;
+  align-items: center;
+  margin: 0;
+  padding: 0.5rem 0.9rem;
+  border-bottom: 1px solid var(--android-pressed);
 }
 
-.ch-keyboard p { margin: 1rem 0 0; font-size: 0.85rem; text-align: center; opacity: 0.65; }
+.ch-keyboard dt { font-weight: 700; white-space: nowrap; }
+.ch-keyboard dd { font-size: 0.875rem; }   /* 14sp, as the task descriptions */
+
+/* The in-game buttons' look: a square box with a 1px grey edge. */
+.ch-keyboard kbd {
+  display: inline-block;
+  min-width: 1.8em;
+  padding: 0.1rem 0.35rem;
+  font: inherit;
+  font-size: 0.9em;
+  font-weight: 700;
+  text-align: center;
+  background: var(--android-card);
+  border: 1px solid var(--android-line);
+  border-radius: 0;
+}
+
+.ch-keyboard p {
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.875rem;
+  text-align: center;
+  background: var(--android-bar);
+  border-top: 1px solid var(--android-line);
+}
 
 /* ---------- rotate prompt ----------
 
