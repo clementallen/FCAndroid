@@ -1,0 +1,126 @@
+plugins {
+    id 'java'
+    id 'org.teavm' version '0.15.0'
+}
+
+// TeaVM 0.15 requires Java 17+ to run. :core stays at 8 for the Android app;
+// TeaVM happily consumes the older bytecode.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+
+dependencies {
+    implementation project(':core')
+    implementation teavm.libs.jsoApis
+}
+
+teavm {
+    // Start on the JS backend: source maps, universal browser support.
+    // wasmGC is a config change once the game runs.
+    js {
+        addedToWebApp = true
+        mainClass = 'com.cloudwalk.web.WebMain'
+        // ES module, so Vite can import it like anything else
+        moduleType = org.teavm.gradle.api.JSModuleType.ES2015
+        // the facade is only reached from JavaScript, so reachability
+        // analysis would otherwise drop it
+        preservedClasses = ['com.cloudwalk.web.FlightClub']
+        // strict=true (32-bit rounding on every float op) was measured and
+        // changes nothing here - the JVM/JS divergence is Math.pow, not
+        // arithmetic - while adding ~180KB. Left off.
+        strict = false
+        obfuscated = false
+        sourceMap = true
+        outputDir = file("$buildDir/generated/teavm/js")
+        targetFileName = 'flightclub.js'
+    }
+}
+
+/**
+ * Runs the simulation on the JVM and again compiled to JavaScript, and
+ * compares where the glider went.
+ *
+ * This is the port's regression test. It is not an exact diff: the JVM and V8
+ * disagree by about an ulp on Math.pow, Cloud.getLift raises base proximity to
+ * the 1000th power, and altitude feeds back into that - so the digits drift
+ * even though the flight does not. The tolerance is far tighter than anything
+ * a player could see, and far tighter than the 0.1 at which the multiplayer
+ * protocol resyncs a position.
+ */
+def traceCases = [
+    [task: 't001', pilot: 0, golden: 't001-pg.trace'],
+    [task: 't002', pilot: 1, golden: 't002-hg.trace'],
+]
+
+abstract class CheckTrace extends DefaultTask {
+
+    /**
+     * Project.exec is gone in Gradle 9; an injected ExecOperations is the
+     * supported way to run something from a task, and works on both.
+     */
+    @javax.inject.Inject
+    abstract ExecOperations getExecOps()
+
+    @InputFile
+    abstract RegularFileProperty getEngine()
+
+    @InputFiles
+    abstract ConfigurableFileCollection getGolden()
+
+    @Input
+    abstract ListProperty<Map<String, Object>> getCases()
+
+    @InputFile
+    abstract RegularFileProperty getComparer()
+
+    @OutputDirectory
+    abstract DirectoryProperty getOutputDir()
+
+    @TaskAction
+    void run() {
+        def js = engine.get().asFile
+        def dir = outputDir.get().asFile
+        dir.mkdirs()
+
+        def runner = new File(dir, 'run.cjs')
+        runner.text = """const fc = require(${groovy.json.JsonOutput.toJson(js.absolutePath)});
+fc.main(process.argv.slice(2), e => { if (e) { console.error(e); process.exit(1); } });
+"""
+
+        cases.get().each { c ->
+            def out = new File(dir, "${c.task}-${c.pilot}.trace")
+            out.withOutputStream { os ->
+                execOps.exec {
+                    commandLine 'node', runner.absolutePath, c.task, "${c.pilot}", '2000', '25'
+                    standardOutput = os
+                }
+            }
+            def goldenFile = golden.files.find { it.name == c.golden }
+            if (goldenFile == null) {
+                throw new GradleException("no golden trace named ${c.golden}")
+            }
+            execOps.exec {
+                commandLine 'python3', comparer.get().asFile.absolutePath,
+                        goldenFile.absolutePath, out.absolutePath, '0.05'
+            }
+        }
+    }
+}
+
+tasks.register('checkTrace', CheckTrace) {
+    group = 'verification'
+    description = 'Compares the JavaScript build against the golden JVM traces.'
+    dependsOn 'generateJavaScript'
+    engine = layout.buildDirectory.file('generated/teavm/js/js/flightclub.js')
+    golden.from(rootProject.fileTree('core/src/test/golden') { include '*.trace' })
+    cases = traceCases
+    comparer = rootProject.layout.projectDirectory.file('web/tools/cmptrace.py')
+    outputDir = layout.buildDirectory.dir('checkTrace')
+}
